@@ -51,7 +51,6 @@ const tabButtons = document.querySelectorAll("[data-tab-target]");
 const tabPanels = document.querySelectorAll(".tab-panel");
 const msForm = document.getElementById("msForm");
 const msResult = document.getElementById("msResult");
-const msCalcButton = document.getElementById("msCalcButton");
 const THREE_LEVEL_GRADE_SUBJECTS = new Set(["art", "music", "pe"]);
 
 authForm.addEventListener("submit", (event) => {
@@ -61,11 +60,6 @@ authForm.addEventListener("submit", (event) => {
 
 registerButton.addEventListener("click", register);
 logoutButton.addEventListener("click", logout);
-msCalcButton.addEventListener("click", () => {
-  state.msData = collectMsFormData();
-  renderMsCalculation();
-  queueMsSave();
-});
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
@@ -81,7 +75,7 @@ document.addEventListener("input", (event) => {
     return;
   }
 
-  if (event.target.closest("[data-ms-raw], [data-ms-extra]")) {
+  if (event.target.closest("[data-ms-raw], #extraInputs input")) {
     handleMsChange();
   }
 });
