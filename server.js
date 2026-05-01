@@ -103,15 +103,6 @@ const DEFAULT_SUBJECTS = [
     ]
   },
   {
-    id: "info",
-    name: "정보",
-    items: [
-      { id: "info_perf_1", kind: "performance", weight: null, maxScore: null, method: "논술형", content: "인공지능 제품 비교 분석" },
-      { id: "info_perf_2", kind: "performance", weight: null, maxScore: null, method: "실기형", content: "피지컬 컴퓨팅 설계 및 구현" },
-      { id: "info_perf_3", kind: "performance", weight: null, maxScore: null, method: "논술형", content: "인공지능 제품 아이디어" }
-    ]
-  },
-  {
     id: "pe",
     name: "체육",
     items: [

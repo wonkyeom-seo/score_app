@@ -335,36 +335,6 @@
       ]
     },
     {
-      "id": "info",
-      "name": "정보",
-      "items": [
-        {
-          "id": "info_perf_1",
-          "kind": "performance",
-          "weight": null,
-          "maxScore": null,
-          "method": "논술형",
-          "content": "인공지능 제품 비교 분석"
-        },
-        {
-          "id": "info_perf_2",
-          "kind": "performance",
-          "weight": null,
-          "maxScore": null,
-          "method": "실기형",
-          "content": "피지컬 컴퓨팅 설계 및 구현"
-        },
-        {
-          "id": "info_perf_3",
-          "kind": "performance",
-          "weight": null,
-          "maxScore": null,
-          "method": "논술형",
-          "content": "인공지능 제품 아이디어"
-        }
-      ]
-    },
-    {
       "id": "pe",
       "name": "체육",
       "items": [
@@ -411,5 +381,13 @@
       ]
     }
   ],
-  "users": []
+  "users": [
+    {
+      "id": "6e9c827e-fd98-4617-bf57-7987524a7507",
+      "name": "서원겸",
+      "passwordSalt": "2ff1c42c5e3aa59b017102175fbf74ac",
+      "passwordHash": "b3bc3827e9f0ffec7f8479d988f068042e42b5f31d7a40cca39a56901000c9ef",
+      "createdAt": "2026-05-01T06:12:28.495Z"
+    }
+  ]
 }

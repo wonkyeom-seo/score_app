@@ -18,6 +18,7 @@ const currentUserName = document.getElementById("currentUserName");
 const saveStatus = document.getElementById("saveStatus");
 const subjectsRoot = document.getElementById("subjectsRoot");
 const summaryGrid = document.getElementById("summaryGrid");
+const THREE_LEVEL_GRADE_SUBJECTS = new Set(["art", "music", "pe"]);
 
 authForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -195,7 +196,7 @@ function calculateAndRender() {
     const totalNode = document.querySelector(`[data-total-for="${subject.id}"]`);
     const gradeNode = document.querySelector(`[data-grade-for="${subject.id}"]`);
 
-    if (totalNode) totalNode.textContent = result.total.toFixed(1);
+    if (totalNode) totalNode.textContent = String(result.roundedTotal);
     if (gradeNode) {
       gradeNode.textContent = result.grade;
       gradeNode.className = `grade grade-${result.grade.toLowerCase()}`;
@@ -212,7 +213,7 @@ function calculateAndRender() {
     summary.className = "summary-card";
     summary.innerHTML = `
       <span>${escapeHtml(subject.name)}</span>
-      <strong>${result.total.toFixed(1)}</strong>
+      <strong>${result.roundedTotal}</strong>
       <em class="grade grade-${result.grade.toLowerCase()}">${result.grade}</em>
       ${result.hasUnknownWeight ? '<small>배점 미정 있음</small>' : ""}
     `;
@@ -242,16 +243,23 @@ function calculateSubject(subject) {
 
   return {
     total,
-    grade: gradeFor(total),
+    roundedTotal: Math.round(total),
+    grade: gradeFor(subject, Math.round(total)),
     hasUnknownWeight,
     items
   };
 }
 
-function gradeFor(total) {
-  if (total >= 89.5) return "A";
-  if (total >= 79.5) return "B";
-  if (total >= 69.5) return "C";
+function gradeFor(subject, roundedTotal) {
+  if (THREE_LEVEL_GRADE_SUBJECTS.has(subject.id)) {
+    if (roundedTotal >= 80) return "A";
+    if (roundedTotal >= 60) return "B";
+    return "C";
+  }
+
+  if (roundedTotal >= 90) return "A";
+  if (roundedTotal >= 80) return "B";
+  if (roundedTotal >= 70) return "C";
   return "D";
 }
 
