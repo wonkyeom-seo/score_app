@@ -166,26 +166,42 @@ function userScoresPath(userId) {
 function loadUserScores(user) {
   const filePath = userScoresPath(user.id);
   if (!fs.existsSync(filePath)) {
-    return { userId: user.id, name: user.name, scores: {}, updatedAt: null };
+    return { userId: user.id, name: user.name, scores: {}, msData: {}, updatedAt: null };
   }
 
   const raw = fs.readFileSync(filePath, "utf8").trim();
-  if (!raw) return { userId: user.id, name: user.name, scores: {}, updatedAt: null };
+  if (!raw) return { userId: user.id, name: user.name, scores: {}, msData: {}, updatedAt: null };
 
   const parsed = JSON.parse(raw);
   return {
     userId: user.id,
     name: user.name,
     scores: parsed && typeof parsed.scores === "object" && parsed.scores ? parsed.scores : {},
+    msData: parsed && typeof parsed.msData === "object" && parsed.msData ? parsed.msData : {},
     updatedAt: parsed.updatedAt || null
   };
 }
 
 function saveUserScores(user, scores) {
+  const existing = loadUserScores(user);
   const payload = {
     userId: user.id,
     name: user.name,
     scores: scores && typeof scores === "object" ? scores : {},
+    msData: existing.msData,
+    updatedAt: new Date().toISOString()
+  };
+  atomicWriteJson(userScoresPath(user.id), payload);
+  return payload;
+}
+
+function saveUserMsData(user, msData) {
+  const existing = loadUserScores(user);
+  const payload = {
+    userId: user.id,
+    name: user.name,
+    scores: existing.scores,
+    msData: msData && typeof msData === "object" ? msData : {},
     updatedAt: new Date().toISOString()
   };
   atomicWriteJson(userScoresPath(user.id), payload);
@@ -273,7 +289,7 @@ app.get("/api/me", (req, res) => {
   if (!user) return res.json({ success: false });
 
   const saved = loadUserScores(user);
-  res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: saved.scores });
+  res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: saved.scores, msData: saved.msData });
 });
 
 app.post("/api/register", (req, res) => {
@@ -331,6 +347,22 @@ app.post("/api/save", (req, res) => {
   if (!user) return res.status(401).json({ success: false, message: "로그인이 필요합니다." });
 
   const saved = saveUserScores(user, req.body.scores || {});
+  res.json({ success: true, updatedAt: saved.updatedAt });
+});
+
+app.get("/api/ms", (req, res) => {
+  const { user } = getSessionUser(req);
+  if (!user) return res.status(401).json({ success: false, message: "로그인이 필요합니다." });
+
+  const saved = loadUserScores(user);
+  res.json({ success: true, msData: saved.msData });
+});
+
+app.post("/api/ms", (req, res) => {
+  const { user } = getSessionUser(req);
+  if (!user) return res.status(401).json({ success: false, message: "로그인이 필요합니다." });
+
+  const saved = saveUserMsData(user, req.body.msData || {});
   res.json({ success: true, updatedAt: saved.updatedAt });
 });
 

@@ -44,9 +44,100 @@
         </div>
       </header>
 
-      <div id="summaryGrid" class="summary-grid" aria-label="과목별 요약"></div>
-      <section id="naeshinPanel" class="naeshin-panel" aria-label="3-1 기준 가내신 점수"></section>
-      <div id="subjectsRoot" class="subjects-root"></div>
+      <nav class="tab-list" aria-label="계산기 선택">
+        <button type="button" class="tab-button is-active" data-tab-target="grade31Panel">3-1 내신</button>
+        <button type="button" class="tab-button secondary" data-tab-target="msPanel">전체 가내신</button>
+      </nav>
+
+      <section id="grade31Panel" class="tab-panel" aria-label="3-1 내신">
+        <div id="summaryGrid" class="summary-grid" aria-label="과목별 요약"></div>
+        <div id="subjectsRoot" class="subjects-root"></div>
+      </section>
+
+      <section id="msPanel" class="tab-panel" aria-label="전체 가내신" hidden>
+        <div id="msResult" class="ms-result-panel" aria-live="polite"></div>
+
+        <section class="ms-section">
+          <div class="ms-section-header">
+            <div>
+              <p class="eyebrow">전체 가내신</p>
+              <h2>학기별 성적 입력</h2>
+            </div>
+            <button type="button" id="msCalcButton" class="secondary small">다시 계산</button>
+          </div>
+
+          <div class="toggle-card">
+            <div>
+              <h3>3-2 성적처리</h3>
+              <p id="thirdSemesterHelper">X면 3학년 1학기 성적으로 3학년 전체를 계산합니다.</p>
+            </div>
+            <label class="toggle-inline" for="useThirdGradeSecondSemester">
+              <span>3-2 사용</span>
+              <input type="checkbox" id="useThirdGradeSecondSemester">
+              <span class="toggle-state" id="thirdSemesterState">X</span>
+            </label>
+          </div>
+
+          <p class="input-notice">
+            원점수나 성취도가 없는 과목은 성취도에서 @를 선택하면 계산에서 제외됩니다.
+          </p>
+
+          <div id="msForm" class="ms-form"></div>
+        </section>
+
+        <section class="ms-section">
+          <div class="ms-section-header">
+            <div>
+              <p class="eyebrow">비교과</p>
+              <h2>출결·봉사·학교활동</h2>
+            </div>
+          </div>
+
+          <div id="extraInputs" class="extra-grid">
+            <fieldset>
+              <legend>출결 상황</legend>
+              <div class="attendance-grid">
+                <span>학년</span>
+                <span>미인정 지각·조퇴</span>
+                <span>미인정 결석</span>
+
+                <strong>1학년</strong>
+                <input type="number" id="tardy1" min="0" value="0" inputmode="numeric" aria-label="1학년 미인정 지각 조퇴">
+                <input type="number" id="absent1" min="0" value="0" inputmode="numeric" aria-label="1학년 미인정 결석">
+
+                <strong>2학년</strong>
+                <input type="number" id="tardy2" min="0" value="0" inputmode="numeric" aria-label="2학년 미인정 지각 조퇴">
+                <input type="number" id="absent2" min="0" value="0" inputmode="numeric" aria-label="2학년 미인정 결석">
+
+                <strong>3학년</strong>
+                <input type="number" id="tardy3" min="0" value="0" inputmode="numeric" aria-label="3학년 미인정 지각 조퇴">
+                <input type="number" id="absent3" min="0" value="0" inputmode="numeric" aria-label="3학년 미인정 결석">
+              </div>
+              <p class="field-help">미인정 지각·조퇴 3회는 미인정 결석 1일로 계산합니다.</p>
+            </fieldset>
+
+            <fieldset>
+              <legend>봉사 활동</legend>
+              <label>
+                <span>3개년 총 봉사 시간</span>
+                <input type="number" id="volunteerHours" min="0" value="0" inputmode="decimal">
+              </label>
+            </fieldset>
+
+            <fieldset>
+              <legend>학교 활동</legend>
+              <label>
+                <span>교내 수상 개수</span>
+                <input type="number" id="awards" min="0" value="0" inputmode="numeric">
+              </label>
+              <label>
+                <span>자치회 임원 활동 기간(월)</span>
+                <input type="number" id="councilMonths" min="0" step="0.1" value="0" inputmode="decimal">
+              </label>
+            </fieldset>
+          </div>
+        </section>
+      </section>
     </section>
   </main>
 

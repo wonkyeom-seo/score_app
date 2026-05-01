@@ -1,9 +1,38 @@
+const MS_SUBJECTS = [
+  "국어",
+  "도덕",
+  "사회",
+  "역사",
+  "수학",
+  "과학",
+  "기술·가정",
+  "영어",
+  "중국어",
+  "체육",
+  "미술",
+  "음악"
+];
+
+const MS_ART_SUBJECTS = ["체육", "미술", "음악"];
+const MS_THIRD_SEMESTER_TOGGLE_ID = "useThirdGradeSecondSemester";
+const MS_THIRD_SEMESTER_KEY = "3_2";
+const MS_SEMESTERS = [
+  { key: "1_2", label: "1학년 2학기", base: 4, achWeight: 0.8, rawWeight: 0.04, maxScore: 12 },
+  { key: "2_1", label: "2학년 1학기", base: 8, achWeight: 1.6, rawWeight: 0.08, maxScore: 24 },
+  { key: "2_2", label: "2학년 2학기", base: 8, achWeight: 1.6, rawWeight: 0.08, maxScore: 24 },
+  { key: "3_1", label: "3학년 1학기", base: 10, achWeight: 2, rawWeight: 0.1, maxScore: 30 },
+  { key: "3_2", label: "3학년 2학기", base: 10, achWeight: 2, rawWeight: 0.1, maxScore: 30 }
+];
+
 const state = {
   user: null,
   subjects: [],
   scores: {},
   saveTimer: null,
-  isDirty: false
+  msData: createDefaultMsData(),
+  msSaveTimer: null,
+  isDirty: false,
+  isMsDirty: false
 };
 
 const authView = document.getElementById("authView");
@@ -18,9 +47,12 @@ const currentUserName = document.getElementById("currentUserName");
 const saveStatus = document.getElementById("saveStatus");
 const subjectsRoot = document.getElementById("subjectsRoot");
 const summaryGrid = document.getElementById("summaryGrid");
-const naeshinPanel = document.getElementById("naeshinPanel");
+const tabButtons = document.querySelectorAll("[data-tab-target]");
+const tabPanels = document.querySelectorAll(".tab-panel");
+const msForm = document.getElementById("msForm");
+const msResult = document.getElementById("msResult");
+const msCalcButton = document.getElementById("msCalcButton");
 const THREE_LEVEL_GRADE_SUBJECTS = new Set(["art", "music", "pe"]);
-const GENERAL_GRADE_POINTS = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
 authForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -29,15 +61,35 @@ authForm.addEventListener("submit", (event) => {
 
 registerButton.addEventListener("click", register);
 logoutButton.addEventListener("click", logout);
+msCalcButton.addEventListener("click", () => {
+  state.msData = collectMsFormData();
+  renderMsCalculation();
+  queueMsSave();
+});
+
+tabButtons.forEach((button) => {
+  button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
+});
 
 document.addEventListener("input", (event) => {
-  const input = event.target.closest("[data-score-input]");
-  if (!input) return;
+  const scoreInput = event.target.closest("[data-score-input]");
+  if (scoreInput) {
+    const value = scoreInput.value.trim();
+    state.scores[scoreInput.dataset.itemId] = value === "" ? "" : Number(value);
+    calculateAndRender();
+    queueSave();
+    return;
+  }
 
-  const value = input.value.trim();
-  state.scores[input.dataset.itemId] = value === "" ? "" : Number(value);
-  calculateAndRender();
-  queueSave();
+  if (event.target.closest("[data-ms-raw], [data-ms-extra]")) {
+    handleMsChange();
+  }
+});
+
+document.addEventListener("change", (event) => {
+  if (event.target.closest("[data-ms-grade]") || event.target.id === MS_THIRD_SEMESTER_TOGGLE_ID) {
+    handleMsChange();
+  }
 });
 
 init();
@@ -89,13 +141,19 @@ async function logout() {
     clearTimeout(state.saveTimer);
     state.saveTimer = null;
   }
+  if (state.msSaveTimer) {
+    clearTimeout(state.msSaveTimer);
+    state.msSaveTimer = null;
+  }
 
   if (state.isDirty) await saveNow();
+  if (state.isMsDirty) await saveMsNow();
   await requestJson("/api/logout", { method: "POST" });
 
   state.user = null;
   state.subjects = [];
   state.scores = {};
+  state.msData = createDefaultMsData();
   showAuth();
 }
 
@@ -103,14 +161,20 @@ function enterApp(payload) {
   state.user = payload.user;
   state.subjects = Array.isArray(payload.subjects) ? payload.subjects : [];
   state.scores = payload.scores && typeof payload.scores === "object" ? payload.scores : {};
+  state.msData = normalizeMsData(payload.msData || {});
   state.isDirty = false;
+  state.isMsDirty = false;
 
   currentUserName.textContent = `${state.user.name}님`;
   authView.hidden = true;
   appView.hidden = false;
   setSaveStatus("저장됨", "saved");
+  activateTab("grade31Panel");
   renderSubjects();
   calculateAndRender();
+  buildMsForm();
+  populateMsForm();
+  renderMsCalculation();
 }
 
 function showAuth() {
@@ -120,9 +184,22 @@ function showAuth() {
   currentUserName.textContent = "";
   setSaveStatus("저장됨", "saved");
   summaryGrid.innerHTML = "";
-  naeshinPanel.innerHTML = "";
   subjectsRoot.innerHTML = "";
+  msForm.innerHTML = "";
+  msResult.innerHTML = "";
   nameInput.focus();
+}
+
+function activateTab(targetId) {
+  tabButtons.forEach((button) => {
+    const active = button.dataset.tabTarget === targetId;
+    button.classList.toggle("is-active", active);
+    button.classList.toggle("secondary", !active);
+  });
+
+  tabPanels.forEach((panel) => {
+    panel.hidden = panel.id !== targetId;
+  });
 }
 
 function renderSubjects() {
@@ -197,11 +274,9 @@ function renderSubjects() {
 
 function calculateAndRender() {
   summaryGrid.innerHTML = "";
-  const subjectResults = [];
 
   for (const subject of state.subjects) {
     const result = calculateSubject(subject);
-    subjectResults.push({ subject, ...result });
     const totalNode = document.querySelector(`[data-total-for="${subject.id}"]`);
     const gradeNode = document.querySelector(`[data-grade-for="${subject.id}"]`);
 
@@ -228,8 +303,6 @@ function calculateAndRender() {
     `;
     summaryGrid.appendChild(summary);
   }
-
-  renderNaeshin(subjectResults);
 }
 
 function calculateSubject(subject) {
@@ -275,80 +348,494 @@ function gradeFor(subject, roundedTotal) {
   return "E";
 }
 
-function renderNaeshin(subjectResults) {
-  const result = calculateNaeshin(subjectResults);
-  const unknownText = result.unknownSubjectNames.length
-    ? `<p class="naeshin-warning">배점 미정: ${escapeHtml(result.unknownSubjectNames.join(", "))}</p>`
-    : "";
+function buildMsForm() {
+  msForm.innerHTML = "";
 
-  naeshinPanel.innerHTML = `
-    <div class="naeshin-main">
-      <span>3-1 기준 가내신점수</span>
-      <div>
-        <strong>${formatScore(result.totalScore)}</strong>
-        <em>/ 60</em>
-      </div>
-    </div>
-    <div class="naeshin-breakdown">
-      <article>
-        <span>3-1 산출</span>
-        <strong>${formatScore(result.generalSemesterScore)} / 30</strong>
-      </article>
-      <article>
-        <span>2배 환산</span>
-        <strong>${formatScore(result.totalScore)} / 60</strong>
-      </article>
-      <article>
-        <span>평균 원점수</span>
-        <strong>${formatScore(result.generalRawAverage, 1)}</strong>
-      </article>
-      <article>
-        <span>평균 성취도</span>
-        <strong>${formatScore(result.generalAchievementAverage, 2)}</strong>
-      </article>
-    </div>
-    <div class="naeshin-meta">
-      <span>일반교과만 반영</span>
-      <span>미술·음악·체육 제외</span>
-      <span>미입력 0점 처리</span>
-    </div>
-    ${unknownText}
-  `;
+  MS_SEMESTERS.forEach((sem, semIndex) => {
+    const details = document.createElement("details");
+    details.className = "semester-card";
+    details.id = `semester_${sem.key}`;
+    details.dataset.semKey = sem.key;
+    details.open = semIndex === 0;
+
+    details.innerHTML = `
+      <summary>
+        <span>${escapeHtml(sem.label)}</span>
+        <em>
+          <span data-ms-sem-count="${sem.key}">0개 입력</span>
+          <span data-ms-sem-score="${sem.key}">${formatScore(sem.base)}점</span>
+        </em>
+      </summary>
+      <div class="semester-subject-list"></div>
+    `;
+
+    const list = details.querySelector(".semester-subject-list");
+    MS_SUBJECTS.forEach((subject, subjectIndex) => {
+      const row = document.createElement("article");
+      row.className = "ms-subject-row";
+      row.innerHTML = `
+        <strong>${escapeHtml(subject)}</strong>
+        <label>
+          <span>원점수</span>
+          <input
+            id="${msFieldId("raw", sem.key, subjectIndex)}"
+            data-ms-raw
+            type="number"
+            min="0"
+            max="100"
+            step="0.1"
+            inputmode="decimal"
+            placeholder="0~100"
+            aria-label="${escapeHtml(sem.label)} ${escapeHtml(subject)} 원점수">
+        </label>
+        <label>
+          <span>성취도</span>
+          <select
+            id="${msFieldId("grade", sem.key, subjectIndex)}"
+            data-ms-grade
+            aria-label="${escapeHtml(sem.label)} ${escapeHtml(subject)} 성취도">
+            <option value="">자동</option>
+            <option value="A">A</option>
+            <option value="B">B</option>
+            <option value="C">C</option>
+            <option value="D">D</option>
+            <option value="E">E</option>
+            <option value="@">@ 제외</option>
+          </select>
+        </label>
+      `;
+      list.appendChild(row);
+    });
+
+    msForm.appendChild(details);
+  });
+
+  updateThirdSemesterVisibility();
 }
 
-function calculateNaeshin(subjectResults) {
-  const generalSubjects = subjectResults.filter(({ subject }) => !THREE_LEVEL_GRADE_SUBJECTS.has(subject.id));
-  const generalCount = generalSubjects.length;
+function populateMsForm() {
+  const toggle = document.getElementById(MS_THIRD_SEMESTER_TOGGLE_ID);
+  if (toggle) toggle.checked = Boolean(state.msData.useThirdGradeSecondSemester);
 
-  const generalRawAverage = generalCount
-    ? generalSubjects.reduce((sum, item) => sum + item.roundedTotal, 0) / generalCount
-    : 0;
-  const generalAchievementAverage = generalCount
-    ? generalSubjects.reduce((sum, item) => sum + (GENERAL_GRADE_POINTS[item.grade] || 0), 0) / generalCount
-    : 0;
-  const generalSemesterScore = generalCount
-    ? round3(10 + generalAchievementAverage * 2 + generalRawAverage * 0.1)
-    : 0;
-  const totalScore = round3(generalSemesterScore * 2);
-  const unknownSubjectNames = generalSubjects
-    .filter((item) => item.hasUnknownWeight)
-    .map((item) => item.subject.name);
+  MS_SEMESTERS.forEach((sem) => {
+    const semData = state.msData.grades[sem.key] || {};
+    MS_SUBJECTS.forEach((subject, subjectIndex) => {
+      const row = semData[subject] || {};
+      const rawInput = document.getElementById(msFieldId("raw", sem.key, subjectIndex));
+      const gradeSelect = document.getElementById(msFieldId("grade", sem.key, subjectIndex));
+
+      if (rawInput) rawInput.value = typeof row.raw === "number" ? String(row.raw) : "";
+      if (gradeSelect) gradeSelect.value = row.grade || "";
+    });
+  });
+
+  [1, 2, 3].forEach((year) => {
+    const attendance = state.msData.attendance[year] || {};
+    setInputValue(`tardy${year}`, attendance.tardy);
+    setInputValue(`absent${year}`, attendance.absent);
+  });
+
+  setInputValue("volunteerHours", state.msData.volunteerHours);
+  setInputValue("awards", state.msData.awards);
+  setInputValue("councilMonths", state.msData.councilMonths);
+  updateThirdSemesterVisibility();
+}
+
+function handleMsChange() {
+  if (!state.user) return;
+
+  state.msData = collectMsFormData();
+  renderMsCalculation();
+  queueMsSave();
+}
+
+function collectMsFormData() {
+  const grades = {};
+
+  MS_SEMESTERS.forEach((sem) => {
+    const semObj = {};
+    MS_SUBJECTS.forEach((subject, subjectIndex) => {
+      const rawInput = document.getElementById(msFieldId("raw", sem.key, subjectIndex));
+      const gradeSelect = document.getElementById(msFieldId("grade", sem.key, subjectIndex));
+      const rawValue = rawInput ? rawInput.value.trim() : "";
+      const parsedRaw = rawValue === "" ? null : Number(rawValue);
+
+      semObj[subject] = {
+        raw: Number.isFinite(parsedRaw) ? parsedRaw : null,
+        grade: gradeSelect ? gradeSelect.value.trim().toUpperCase() : ""
+      };
+    });
+    grades[sem.key] = semObj;
+  });
+
+  const attendance = {};
+  [1, 2, 3].forEach((year) => {
+    attendance[year] = {
+      tardy: parseNumberInput(`tardy${year}`),
+      absent: parseNumberInput(`absent${year}`)
+    };
+  });
 
   return {
-    totalScore,
-    generalSemesterScore,
-    generalRawAverage,
-    generalAchievementAverage,
-    unknownSubjectNames
+    grades,
+    attendance,
+    volunteerHours: parseNumberInput("volunteerHours"),
+    awards: parseNumberInput("awards"),
+    councilMonths: parseNumberInput("councilMonths"),
+    useThirdGradeSecondSemester: Boolean(document.getElementById(MS_THIRD_SEMESTER_TOGGLE_ID)?.checked)
   };
 }
 
-function round3(value) {
-  return Math.round((Number(value) + Number.EPSILON) * 1000) / 1000;
+function renderMsCalculation() {
+  updateThirdSemesterVisibility();
+  const result = calculateMsTotal(state.msData);
+  renderMsResult(result);
+  updateMsSemesterSummaries(result);
 }
 
-function formatScore(value, digits = 3) {
-  return Number.isFinite(value) ? value.toFixed(digits) : "0.000";
+function renderMsResult(result) {
+  const thirdSemesterNote = result.useThirdGradeSecondSemester
+    ? "3-1, 3-2를 각각 반영"
+    : "3-2는 3-1 성적으로 대체";
+
+  msResult.innerHTML = `
+    <div class="ms-result-main">
+      <div>
+        <span>전체 가내신 총점</span>
+        <strong>${formatScore(result.total)}</strong>
+        <em>/ 200</em>
+      </div>
+      <p>감점 ${formatScore(result.minus)}점 · ${thirdSemesterNote}</p>
+    </div>
+    <div class="ms-result-grid">
+      <article><span>1-2 일반교과</span><strong>${formatScore(result.semesterScores["1_2"])} / 12</strong></article>
+      <article><span>2-1 일반교과</span><strong>${formatScore(result.semesterScores["2_1"])} / 24</strong></article>
+      <article><span>2-2 일반교과</span><strong>${formatScore(result.semesterScores["2_2"])} / 24</strong></article>
+      <article><span>3-1 일반교과</span><strong>${formatScore(result.semesterScores["3_1"])} / 30</strong></article>
+      <article><span>3-2 일반교과</span><strong>${formatScore(result.semesterScores["3_2"])} / 30</strong></article>
+      <article><span>체육·예술</span><strong>${formatScore(result.artScore)} / 30</strong></article>
+      <article><span>출결</span><strong>${formatScore(result.attendanceScore)} / 20</strong></article>
+      <article><span>봉사</span><strong>${formatScore(result.volunteerScore)} / 20</strong></article>
+      <article><span>학교활동</span><strong>${formatScore(result.schoolActivityScore)} / 10</strong></article>
+    </div>
+  `;
+}
+
+function updateMsSemesterSummaries(result) {
+  const effectiveGrades = buildEffectiveGrades(
+    state.msData.grades,
+    state.msData.useThirdGradeSecondSemester
+  );
+
+  MS_SEMESTERS.forEach((sem) => {
+    const countNode = document.querySelector(`[data-ms-sem-count="${sem.key}"]`);
+    const scoreNode = document.querySelector(`[data-ms-sem-score="${sem.key}"]`);
+    const inputCount = countSemesterInputs(effectiveGrades[sem.key]);
+
+    if (countNode) countNode.textContent = `${inputCount}개 입력`;
+    if (scoreNode) scoreNode.textContent = `${formatScore(result.semesterScores[sem.key])}점`;
+  });
+}
+
+function updateThirdSemesterVisibility() {
+  const enabled = Boolean(document.getElementById(MS_THIRD_SEMESTER_TOGGLE_ID)?.checked);
+  const section = document.getElementById(`semester_${MS_THIRD_SEMESTER_KEY}`);
+  if (section) section.hidden = !enabled;
+
+  const stateNode = document.getElementById("thirdSemesterState");
+  if (stateNode) stateNode.textContent = enabled ? "O" : "X";
+
+  const helper = document.getElementById("thirdSemesterHelper");
+  if (helper) {
+    helper.textContent = enabled
+      ? "O면 3학년 1학기와 2학기를 각각 반영합니다."
+      : "X면 3학년 2학기를 숨기고 1학기 성적으로 3학년 전체를 계산합니다.";
+  }
+}
+
+function calculateMsTotal(data) {
+  const {
+    grades,
+    attendance,
+    volunteerHours,
+    awards,
+    councilMonths,
+    useThirdGradeSecondSemester
+  } = normalizeMsData(data);
+
+  const effectiveGrades = buildEffectiveGrades(grades, useThirdGradeSecondSemester);
+  const semesterScores = {};
+  let gradeSum = 0;
+
+  MS_SEMESTERS.forEach((sem) => {
+    const score = calculateSemesterScore(
+      effectiveGrades[sem.key],
+      sem.base,
+      sem.achWeight,
+      sem.rawWeight
+    );
+    semesterScores[sem.key] = score;
+    gradeSum += score;
+  });
+
+  const artScore = calculateArtScore(effectiveGrades);
+  const attendanceScore = calculateAttendanceScore(attendance);
+  const volunteerScore = calculateVolunteerScore(volunteerHours);
+  const schoolActivityScore = calculateSchoolActivityScore(awards, councilMonths);
+  const total = round3(gradeSum + artScore + attendanceScore + volunteerScore + schoolActivityScore);
+
+  let minus = 0;
+
+  MS_SEMESTERS.forEach((sem) => {
+    if (semesterHasData(effectiveGrades[sem.key])) {
+      const diff = sem.maxScore - semesterScores[sem.key];
+      if (diff > 0) minus += diff;
+    }
+  });
+
+  if (MS_SEMESTERS.some((sem) => semesterHasData(effectiveGrades[sem.key], true))) {
+    const diffArt = 30 - artScore;
+    if (diffArt > 0) minus += diffArt;
+  }
+
+  const diffAttendance = 20 - attendanceScore;
+  if (diffAttendance > 0) minus += diffAttendance;
+
+  const diffVolunteer = 20 - volunteerScore;
+  if (diffVolunteer > 0) minus += diffVolunteer;
+
+  const diffSchool = 10 - schoolActivityScore;
+  if (diffSchool > 0) minus += diffSchool;
+
+  return {
+    semesterScores,
+    artScore,
+    attendanceScore,
+    volunteerScore,
+    schoolActivityScore,
+    total,
+    minus: round3(minus),
+    useThirdGradeSecondSemester
+  };
+}
+
+function calculateSemesterScore(semData = {}, base, achWeight, rawWeight) {
+  let sumAch = 0;
+  let sumRaw = 0;
+  let count = 0;
+
+  MS_SUBJECTS.forEach((subject) => {
+    if (MS_ART_SUBJECTS.includes(subject)) return;
+
+    const info = semData[subject] || {};
+    if (isExcludedSubject(info)) return;
+
+    const raw = rawToNumber(info.raw);
+    const gradePoint = gradeToPoint(resolveGeneralGrade(raw, info.grade));
+
+    if (raw !== null || gradePoint > 0) {
+      if (gradePoint > 0) sumAch += gradePoint;
+      if (raw !== null) sumRaw += raw;
+      count += 1;
+    }
+  });
+
+  if (count === 0) return base;
+
+  const avgAch = sumAch / count;
+  const avgRaw = sumRaw / count;
+  return round3(base + avgAch * achWeight + avgRaw * rawWeight);
+}
+
+function calculateArtScore(gradesData) {
+  let aCount = 0;
+  let bCount = 0;
+  let cCount = 0;
+  let subjectCount = 0;
+
+  MS_SEMESTERS.forEach((sem) => {
+    const semData = gradesData[sem.key] || {};
+    MS_ART_SUBJECTS.forEach((subject) => {
+      const info = semData[subject] || {};
+      if (isExcludedSubject(info)) return;
+
+      const grade = (info.grade || "").trim().toUpperCase();
+      if (grade === "A" || grade === "B" || grade === "C") {
+        subjectCount += 1;
+        if (grade === "A") aCount += 1;
+        else if (grade === "B") bCount += 1;
+        else cCount += 1;
+      }
+    });
+  });
+
+  if (subjectCount === 0) return 16.667;
+
+  const weightedSum = 3 * aCount + 2 * bCount + cCount;
+  return round3(10 + 20 * (weightedSum / (3 * subjectCount)));
+}
+
+function calculateAttendanceScore(attendance) {
+  let total = 0;
+
+  [1, 2, 3].forEach((year) => {
+    const { tardy = 0, absent = 0 } = attendance[year] || {};
+    const extraAbs = Math.floor((tardy || 0) / 3);
+    const totalAbs = (absent || 0) + extraAbs;
+    const ratio = totalAbs >= 6 ? 0.4 : [1.0, 0.9, 0.8, 0.7, 0.6, 0.5][totalAbs] ?? 0.4;
+
+    total += (year === 1 ? 6 : 7) * ratio;
+  });
+
+  return round3(total);
+}
+
+function calculateVolunteerScore(hours) {
+  if (hours >= 15) return 20;
+  if (hours <= 7) return 12;
+  return 12 + (hours - 7);
+}
+
+function calculateSchoolActivityScore(awards, months) {
+  return 8 + Math.min(awards * 0.5 + months * 0.1, 2);
+}
+
+function semesterHasData(semData = {}, isArtSemester = false) {
+  return MS_SUBJECTS.some((subject) => {
+    if (!isArtSemester && MS_ART_SUBJECTS.includes(subject)) return false;
+
+    const info = semData[subject] || {};
+    if (isExcludedSubject(info)) return false;
+
+    const raw = rawToNumber(info.raw);
+    const grade = isArtSemester
+      ? (info.grade || "").trim().toUpperCase()
+      : resolveGeneralGrade(raw, info.grade);
+
+    return raw !== null || gradeToPoint(grade) > 0;
+  });
+}
+
+function countSemesterInputs(semData = {}) {
+  return MS_SUBJECTS.filter((subject) => {
+    const info = semData[subject] || {};
+    if (isExcludedSubject(info)) return false;
+
+    const raw = rawToNumber(info.raw);
+    const grade = (info.grade || "").trim();
+    return raw !== null || grade !== "";
+  }).length;
+}
+
+function buildEffectiveGrades(grades = {}, useThirdGradeSecondSemester = false) {
+  const effectiveGrades = {};
+  MS_SEMESTERS.forEach((sem) => {
+    effectiveGrades[sem.key] = cloneSemesterData(grades[sem.key]);
+  });
+
+  if (!useThirdGradeSecondSemester) {
+    effectiveGrades[MS_THIRD_SEMESTER_KEY] = cloneSemesterData(grades["3_1"]);
+  }
+
+  return effectiveGrades;
+}
+
+function cloneSemesterData(semData = {}) {
+  const cloned = {};
+  MS_SUBJECTS.forEach((subject) => {
+    const row = semData[subject] || {};
+    cloned[subject] = {
+      raw: row.raw ?? null,
+      grade: row.grade ?? ""
+    };
+  });
+  return cloned;
+}
+
+function createDefaultMsData() {
+  const grades = {};
+  MS_SEMESTERS.forEach((sem) => {
+    grades[sem.key] = cloneSemesterData();
+  });
+
+  return {
+    grades,
+    attendance: {
+      1: { tardy: 0, absent: 0 },
+      2: { tardy: 0, absent: 0 },
+      3: { tardy: 0, absent: 0 }
+    },
+    volunteerHours: 0,
+    awards: 0,
+    councilMonths: 0,
+    useThirdGradeSecondSemester: false
+  };
+}
+
+function normalizeMsData(data = {}) {
+  const defaults = createDefaultMsData();
+  const source = data && typeof data === "object" ? data : {};
+
+  MS_SEMESTERS.forEach((sem) => {
+    const semData = source.grades?.[sem.key] || {};
+    MS_SUBJECTS.forEach((subject) => {
+      const row = semData[subject] || {};
+      const excludedByRaw = row.raw === "@";
+      defaults.grades[sem.key][subject] = {
+        raw: typeof row.raw === "number" && Number.isFinite(row.raw) ? row.raw : null,
+        grade: excludedByRaw ? "@" : (typeof row.grade === "string" ? row.grade.trim().toUpperCase() : "")
+      };
+    });
+  });
+
+  [1, 2, 3].forEach((year) => {
+    defaults.attendance[year] = {
+      tardy: toSafeNumber(source.attendance?.[year]?.tardy),
+      absent: toSafeNumber(source.attendance?.[year]?.absent)
+    };
+  });
+
+  defaults.volunteerHours = toSafeNumber(source.volunteerHours);
+  defaults.awards = toSafeNumber(source.awards);
+  defaults.councilMonths = toSafeNumber(source.councilMonths);
+  defaults.useThirdGradeSecondSemester = Boolean(source.useThirdGradeSecondSemester);
+  return defaults;
+}
+
+function isExcludedSubject(info = {}) {
+  return info.raw === "@" || (info.grade || "").trim() === "@";
+}
+
+function rawToNumber(raw) {
+  if (typeof raw !== "number") return null;
+  return Number.isFinite(raw) ? raw : null;
+}
+
+function inferGradeFromRaw(raw) {
+  const numericRaw = rawToNumber(raw);
+  if (numericRaw === null) return "";
+  if (numericRaw >= 90) return "A";
+  if (numericRaw >= 80) return "B";
+  if (numericRaw >= 70) return "C";
+  if (numericRaw >= 60) return "D";
+  return "E";
+}
+
+function resolveGeneralGrade(raw, grade) {
+  const normalizedGrade = (grade || "").trim().toUpperCase();
+  if (normalizedGrade) return normalizedGrade === "@" ? "" : normalizedGrade;
+  return inferGradeFromRaw(raw);
+}
+
+function gradeToPoint(grade) {
+  switch ((grade || "").toUpperCase()) {
+    case "A": return 5;
+    case "B": return 4;
+    case "C": return 3;
+    case "D": return 2;
+    case "E": return 1;
+    default: return 0;
+  }
 }
 
 function queueSave() {
@@ -369,7 +856,32 @@ async function saveNow() {
 
   if (result.success) {
     state.isDirty = false;
-    setSaveStatus("저장됨", "saved");
+    setSaveStatus(state.isMsDirty ? "저장 대기" : "저장됨", state.isMsDirty ? "pending" : "saved");
+    return;
+  }
+
+  setSaveStatus("저장 실패", "error");
+}
+
+function queueMsSave() {
+  state.isMsDirty = true;
+  setSaveStatus("저장 대기", "pending");
+  if (state.msSaveTimer) clearTimeout(state.msSaveTimer);
+  state.msSaveTimer = setTimeout(saveMsNow, 500);
+}
+
+async function saveMsNow() {
+  if (!state.user) return;
+
+  setSaveStatus("저장 중", "saving");
+  const result = await requestJson("/api/ms", {
+    method: "POST",
+    body: JSON.stringify({ msData: state.msData })
+  });
+
+  if (result.success) {
+    state.isMsDirty = false;
+    setSaveStatus(state.isDirty ? "저장 대기" : "저장됨", state.isDirty ? "pending" : "saved");
     return;
   }
 
@@ -393,6 +905,35 @@ async function requestJson(url, options = {}) {
   } catch (error) {
     return { success: false, message: "서버에 연결할 수 없습니다." };
   }
+}
+
+function msFieldId(kind, semKey, subjectIndex) {
+  return `ms_${kind}_${semKey}_${subjectIndex}`;
+}
+
+function parseNumberInput(id) {
+  const value = document.getElementById(id)?.value.trim() ?? "";
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function setInputValue(id, value) {
+  const input = document.getElementById(id);
+  if (!input) return;
+  input.value = Number.isFinite(Number(value)) ? String(value) : "0";
+}
+
+function toSafeNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function round3(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 1000) / 1000;
+}
+
+function formatScore(value, digits = 3) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "0.000";
 }
 
 function formatWeight(weight) {
