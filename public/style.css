@@ -1,19 +1,20 @@
 :root {
   color-scheme: light;
-  --bg: #f4f6f8;
+  --bg: #f3f5f2;
+  --paper: #fffdf8;
   --panel: #ffffff;
-  --line: #d7dde5;
-  --text: #1f2933;
-  --muted: #687384;
-  --accent: #0f766e;
-  --accent-dark: #0b5f59;
+  --line: #d8ded7;
+  --text: #20262d;
+  --muted: #68716b;
+  --accent: #2f6f5e;
+  --accent-dark: #255849;
   --danger: #b42318;
   --warn: #a15c07;
-  --blue: #2356b8;
-  --green: #147846;
+  --blue: #315f9f;
+  --green: #28734f;
   --orange: #b85c12;
   --red: #b42318;
-  --shadow: 0 10px 24px rgba(31, 41, 51, 0.08);
+  --shadow: 0 8px 18px rgba(32, 38, 45, 0.06);
 }
 
 * {
@@ -23,7 +24,11 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--bg);
+  background:
+    linear-gradient(rgba(47, 111, 94, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 111, 94, 0.035) 1px, transparent 1px),
+    var(--bg);
+  background-size: 28px 28px;
   color: var(--text);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   letter-spacing: 0;
@@ -40,12 +45,12 @@ input {
 
 button {
   border: 0;
-  border-radius: 8px;
+  border-radius: 6px;
   background: var(--accent);
   color: white;
   cursor: pointer;
-  min-height: 44px;
-  padding: 0 18px;
+  min-height: 42px;
+  padding: 0 16px;
   font-weight: 700;
 }
 
@@ -54,12 +59,13 @@ button:hover {
 }
 
 button.secondary {
-  background: #e8edf2;
+  border: 1px solid #ccd5cf;
+  background: #f4f6f4;
   color: var(--text);
 }
 
 button.secondary:hover {
-  background: #dbe3eb;
+  background: #e9eee9;
 }
 
 button.small {
@@ -70,9 +76,9 @@ button.small {
 
 input {
   width: 100%;
-  min-height: 44px;
+  min-height: 42px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 9px 11px;
   background: white;
   color: var(--text);
@@ -85,26 +91,28 @@ input:focus {
 }
 
 .shell {
-  width: min(1180px, 100%);
+  width: min(1120px, 100%);
   margin: 0 auto;
-  padding: 24px;
+  padding: 28px 22px;
 }
 
 .auth-panel {
   width: min(420px, 100%);
   margin: 10vh auto 0;
-  padding: 28px;
+  padding: 26px 28px 24px;
   border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  border-left: 5px solid var(--accent);
+  border-radius: 7px;
+  background: var(--paper);
   box-shadow: var(--shadow);
 }
 
 .eyebrow {
-  margin: 0 0 6px;
+  margin: 0 0 7px;
   color: var(--accent);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 h1,
@@ -112,9 +120,18 @@ h2 {
   margin: 0;
 }
 
+h1 {
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 20px;
+}
+
 .auth-form {
   display: grid;
-  gap: 14px;
+  gap: 13px;
   margin-top: 22px;
 }
 
@@ -141,7 +158,7 @@ label {
 
 .app-view {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .app-header {
@@ -149,10 +166,19 @@ label {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
+  padding: 18px 0 16px;
+  border: 0;
+  border-bottom: 2px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+}
+
+.app-header h1 {
+  font-size: 28px;
+}
+
+.app-header .eyebrow {
+  margin-bottom: 5px;
 }
 
 .session-box {
@@ -160,18 +186,58 @@ label {
   align-items: center;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.session-box span:first-child {
+  font-size: 14px;
+  font-weight: 800;
 }
 
 .save-status {
-  min-width: 74px;
+  min-width: 70px;
   border: 1px solid var(--line);
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 5px 9px;
+  background: #fffdf8;
   color: var(--muted);
   text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(122px, 1fr));
+  gap: 8px;
+}
+
+.summary-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  min-height: 74px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+}
+
+.summary-card span {
+  color: var(--muted);
   font-size: 13px;
   font-weight: 800;
+}
+
+.summary-card strong {
+  font-size: 23px;
+}
+
+.summary-card small {
+  grid-column: 1 / -1;
+  color: var(--warn);
+  font-size: 12px;
 }
 
 .save-status[data-status="saving"],
@@ -185,50 +251,17 @@ label {
   color: var(--danger);
 }
 
-.summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
-  gap: 10px;
-}
-
-.summary-card {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 2px 8px;
-  min-height: 78px;
-  padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-}
-
-.summary-card span {
-  color: var(--muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.summary-card strong {
-  font-size: 24px;
-}
-
-.summary-card small {
-  grid-column: 1 / -1;
-  color: var(--warn);
-  font-size: 12px;
-}
-
 .subjects-root {
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .subject-card {
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--panel);
-  box-shadow: var(--shadow);
+  box-shadow: 0 2px 8px rgba(32, 38, 45, 0.04);
 }
 
 .subject-header {
@@ -236,9 +269,9 @@ label {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 18px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--line);
-  background: #fafbfc;
+  background: #f8faf7;
 }
 
 .subject-header p {
@@ -256,7 +289,7 @@ label {
 .subject-score strong {
   min-width: 64px;
   text-align: right;
-  font-size: 28px;
+  font-size: 26px;
 }
 
 .grade {
@@ -264,7 +297,7 @@ label {
   place-items: center;
   min-width: 34px;
   height: 34px;
-  border-radius: 8px;
+  border-radius: 6px;
   color: white;
   font-style: normal;
   font-weight: 900;
@@ -299,15 +332,15 @@ table {
 th,
 td {
   border-bottom: 1px solid var(--line);
-  padding: 10px;
+  padding: 9px 10px;
   text-align: left;
   vertical-align: middle;
 }
 
 th {
-  background: #eef3f7;
+  background: #eef4f0;
   color: #364152;
-  font-size: 13px;
+  font-size: 12px;
   white-space: nowrap;
 }
 
@@ -348,7 +381,9 @@ td input {
   }
 
   .auth-panel {
-    margin-top: 5vh;
+    width: 100%;
+    max-width: 360px;
+    margin: 5vh auto 0;
     padding: 20px;
   }
 
