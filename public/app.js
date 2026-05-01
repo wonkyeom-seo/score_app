@@ -115,6 +115,10 @@ function showAuth() {
   authView.hidden = false;
   appView.hidden = true;
   authMessage.textContent = "";
+  currentUserName.textContent = "";
+  setSaveStatus("저장됨", "saved");
+  summaryGrid.innerHTML = "";
+  subjectsRoot.innerHTML = "";
   nameInput.focus();
 }
 
