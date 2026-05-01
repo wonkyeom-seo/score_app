@@ -371,21 +371,25 @@ function buildMsForm() {
 
     const list = details.querySelector(".semester-subject-list");
     MS_SUBJECTS.forEach((subject, subjectIndex) => {
+      const isArtSubject = MS_ART_SUBJECTS.includes(subject);
+      const gradeOptions = isArtSubject
+        ? ["", "A", "B", "C", "@"]
+        : ["", "A", "B", "C", "D", "E", "@"];
       const row = document.createElement("article");
       row.className = "ms-subject-row";
       row.innerHTML = `
         <strong>${escapeHtml(subject)}</strong>
         <label>
-          <span>원점수</span>
+          <span>${isArtSubject ? "원점수 미반영" : "원점수"}</span>
           <input
             id="${msFieldId("raw", sem.key, subjectIndex)}"
-            data-ms-raw
+            ${isArtSubject ? "disabled" : "data-ms-raw"}
             type="number"
             min="0"
             max="100"
             step="0.1"
             inputmode="decimal"
-            placeholder="0~100"
+            placeholder="${isArtSubject ? "미반영" : "0~100"}"
             aria-label="${escapeHtml(sem.label)} ${escapeHtml(subject)} 원점수">
         </label>
         <label>
@@ -394,13 +398,10 @@ function buildMsForm() {
             id="${msFieldId("grade", sem.key, subjectIndex)}"
             data-ms-grade
             aria-label="${escapeHtml(sem.label)} ${escapeHtml(subject)} 성취도">
-            <option value="">자동</option>
-            <option value="A">A</option>
-            <option value="B">B</option>
-            <option value="C">C</option>
-            <option value="D">D</option>
-            <option value="E">E</option>
-            <option value="@">@ 제외</option>
+            ${gradeOptions.map((grade) => {
+              const label = grade === "" ? (isArtSubject ? "선택" : "자동") : (grade === "@" ? "@ 제외" : grade);
+              return `<option value="${grade}">${label}</option>`;
+            }).join("")}
           </select>
         </label>
       `;
@@ -423,8 +424,9 @@ function populateMsForm() {
       const row = semData[subject] || {};
       const rawInput = document.getElementById(msFieldId("raw", sem.key, subjectIndex));
       const gradeSelect = document.getElementById(msFieldId("grade", sem.key, subjectIndex));
+      const isArtSubject = MS_ART_SUBJECTS.includes(subject);
 
-      if (rawInput) rawInput.value = typeof row.raw === "number" ? String(row.raw) : "";
+      if (rawInput) rawInput.value = !isArtSubject && typeof row.raw === "number" ? String(row.raw) : "";
       if (gradeSelect) gradeSelect.value = row.grade || "";
     });
   });
@@ -455,13 +457,14 @@ function collectMsFormData() {
   MS_SEMESTERS.forEach((sem) => {
     const semObj = {};
     MS_SUBJECTS.forEach((subject, subjectIndex) => {
+      const isArtSubject = MS_ART_SUBJECTS.includes(subject);
       const rawInput = document.getElementById(msFieldId("raw", sem.key, subjectIndex));
       const gradeSelect = document.getElementById(msFieldId("grade", sem.key, subjectIndex));
       const rawValue = rawInput ? rawInput.value.trim() : "";
       const parsedRaw = rawValue === "" ? null : Number(rawValue);
 
       semObj[subject] = {
-        raw: Number.isFinite(parsedRaw) ? parsedRaw : null,
+        raw: !isArtSubject && Number.isFinite(parsedRaw) ? parsedRaw : null,
         grade: gradeSelect ? gradeSelect.value.trim().toUpperCase() : ""
       };
     });
@@ -631,13 +634,13 @@ function calculateSemesterScore(semData = {}, base, achWeight, rawWeight) {
     if (isExcludedSubject(info)) return;
 
     const raw = rawToNumber(info.raw);
+    if (raw === null) return;
+
     const gradePoint = gradeToPoint(resolveGeneralGrade(raw, info.grade));
 
-    if (raw !== null || gradePoint > 0) {
-      if (gradePoint > 0) sumAch += gradePoint;
-      if (raw !== null) sumRaw += raw;
-      count += 1;
-    }
+    if (gradePoint > 0) sumAch += gradePoint;
+    sumRaw += raw;
+    count += 1;
   });
 
   if (count === 0) return base;
@@ -680,8 +683,10 @@ function calculateAttendanceScore(attendance) {
 
   [1, 2, 3].forEach((year) => {
     const { tardy = 0, absent = 0 } = attendance[year] || {};
-    const extraAbs = Math.floor((tardy || 0) / 3);
-    const totalAbs = (absent || 0) + extraAbs;
+    const tardyCount = Math.max(0, Math.floor(tardy || 0));
+    const absentDays = Math.max(0, Math.floor(absent || 0));
+    const extraAbs = Math.floor(tardyCount / 3);
+    const totalAbs = absentDays + extraAbs;
     const ratio = totalAbs >= 6 ? 0.4 : [1.0, 0.9, 0.8, 0.7, 0.6, 0.5][totalAbs] ?? 0.4;
 
     total += (year === 1 ? 6 : 7) * ratio;
@@ -691,13 +696,16 @@ function calculateAttendanceScore(attendance) {
 }
 
 function calculateVolunteerScore(hours) {
-  if (hours >= 15) return 20;
-  if (hours <= 7) return 12;
-  return 12 + (hours - 7);
+  const recognizedHours = Math.max(0, Math.floor(hours || 0));
+  if (recognizedHours >= 15) return 20;
+  if (recognizedHours <= 7) return 12;
+  return 12 + (recognizedHours - 7);
 }
 
 function calculateSchoolActivityScore(awards, months) {
-  return 8 + Math.min(awards * 0.5 + months * 0.1, 2);
+  const awardCount = Math.max(0, Math.floor(awards || 0));
+  const monthCount = Math.max(0, Math.floor(months || 0));
+  return round3(8 + Math.min(awardCount * 0.5 + monthCount * 0.1, 2));
 }
 
 function semesterHasData(semData = {}, isArtSemester = false) {
@@ -712,7 +720,9 @@ function semesterHasData(semData = {}, isArtSemester = false) {
       ? (info.grade || "").trim().toUpperCase()
       : resolveGeneralGrade(raw, info.grade);
 
-    return raw !== null || gradeToPoint(grade) > 0;
+    return isArtSemester
+      ? grade === "A" || grade === "B" || grade === "C"
+      : raw !== null;
   });
 }
 
@@ -723,7 +733,9 @@ function countSemesterInputs(semData = {}) {
 
     const raw = rawToNumber(info.raw);
     const grade = (info.grade || "").trim();
-    return raw !== null || grade !== "";
+    return MS_ART_SUBJECTS.includes(subject)
+      ? grade === "A" || grade === "B" || grade === "C"
+      : raw !== null;
   }).length;
 }
 
@@ -808,7 +820,7 @@ function isExcludedSubject(info = {}) {
 
 function rawToNumber(raw) {
   if (typeof raw !== "number") return null;
-  return Number.isFinite(raw) ? raw : null;
+  return Number.isFinite(raw) && raw >= 0 && raw <= 100 ? raw : null;
 }
 
 function inferGradeFromRaw(raw) {
@@ -914,7 +926,7 @@ function msFieldId(kind, semKey, subjectIndex) {
 function parseNumberInput(id) {
   const value = document.getElementById(id)?.value.trim() ?? "";
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
 }
 
 function setInputValue(id, value) {
