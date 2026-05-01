@@ -1,3 +1,415 @@
 {
+  "subjects": [
+    {
+      "id": "science",
+      "name": "과학",
+      "items": [
+        {
+          "id": "science_perf_1",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "운동과 에너지의 관계 해석하기"
+        },
+        {
+          "id": "science_perf_2",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "포트폴리오",
+          "content": "포트폴리오"
+        },
+        {
+          "id": "science_exam_1",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "1차 정기고사"
+        },
+        {
+          "id": "science_exam_2",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "korean",
+      "name": "국어",
+      "items": [
+        {
+          "id": "korean_perf_1",
+          "kind": "performance",
+          "weight": 15,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "주장하는 글쓰기"
+        },
+        {
+          "id": "korean_perf_2",
+          "kind": "performance",
+          "weight": 15,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "독서 신문 만들기"
+        },
+        {
+          "id": "korean_exam_1",
+          "kind": "exam",
+          "weight": 35,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "1차 정기고사"
+        },
+        {
+          "id": "korean_exam_2",
+          "kind": "exam",
+          "weight": 35,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "tech_home",
+      "name": "기술가정",
+      "items": [
+        {
+          "id": "tech_home_perf_1",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "저출산·고령사회에 대해 논하기"
+        },
+        {
+          "id": "tech_home_perf_2",
+          "kind": "performance",
+          "weight": 30,
+          "maxScore": null,
+          "method": "실습형 논술",
+          "content": "나의 생애 설계 그래프 만들기"
+        },
+        {
+          "id": "tech_home_exam_2",
+          "kind": "exam",
+          "weight": 50,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "art",
+      "name": "미술",
+      "items": [
+        {
+          "id": "art_perf_1",
+          "kind": "performance",
+          "weight": 40,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "팜플렛 제작하기"
+        },
+        {
+          "id": "art_perf_2",
+          "kind": "performance",
+          "weight": 40,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "명화 그리기"
+        },
+        {
+          "id": "art_perf_3",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "서양 미술작품 분석하기"
+        }
+      ]
+    },
+    {
+      "id": "social",
+      "name": "사회",
+      "items": [
+        {
+          "id": "social_perf_1",
+          "kind": "performance",
+          "weight": 10,
+          "maxScore": null,
+          "method": "탐구활동",
+          "content": "인권 지도 만들기"
+        },
+        {
+          "id": "social_perf_2",
+          "kind": "performance",
+          "weight": 30,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "기본권 갈등 논술"
+        },
+        {
+          "id": "social_exam_1",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "1차 정기고사"
+        },
+        {
+          "id": "social_exam_2",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "math",
+      "name": "수학",
+      "items": [
+        {
+          "id": "math_perf_1",
+          "kind": "performance",
+          "weight": 15,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "제곱근의 연산과 실생활 문제 풀이"
+        },
+        {
+          "id": "math_perf_2",
+          "kind": "performance",
+          "weight": 15,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "이차함수의 그래프 그리기"
+        },
+        {
+          "id": "math_perf_3",
+          "kind": "performance",
+          "weight": 10,
+          "maxScore": null,
+          "method": "포트폴리오",
+          "content": "포트폴리오"
+        },
+        {
+          "id": "math_exam_1",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "1차 정기고사"
+        },
+        {
+          "id": "math_exam_2",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "history",
+      "name": "역사",
+      "items": [
+        {
+          "id": "history_perf_1",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "삼국 통일 의의 논술하기"
+        },
+        {
+          "id": "history_perf_2",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "역사 신문 만들기"
+        },
+        {
+          "id": "history_exam_1",
+          "kind": "exam",
+          "weight": 35,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "1차 정기고사"
+        },
+        {
+          "id": "history_exam_2",
+          "kind": "exam",
+          "weight": 35,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "english",
+      "name": "영어",
+      "items": [
+        {
+          "id": "english_perf_1",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "관계 회복을 위한 행동 계획서 작성하기"
+        },
+        {
+          "id": "english_perf_2",
+          "kind": "performance",
+          "weight": 10,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "관계 회목을 위한 행동 계획 말하기"
+        },
+        {
+          "id": "english_perf_3",
+          "kind": "performance",
+          "weight": 10,
+          "maxScore": null,
+          "method": "포트폴리오",
+          "content": "포트폴리오"
+        },
+        {
+          "id": "english_exam_1",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "1차 정기고사"
+        },
+        {
+          "id": "english_exam_2",
+          "kind": "exam",
+          "weight": 30,
+          "maxScore": 100,
+          "method": "정기고사",
+          "content": "2차 정기고사"
+        }
+      ]
+    },
+    {
+      "id": "music",
+      "name": "음악",
+      "items": [
+        {
+          "id": "music_perf_1",
+          "kind": "performance",
+          "weight": 40,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "사물 놀이 악기 연주하기"
+        },
+        {
+          "id": "music_perf_2",
+          "kind": "performance",
+          "weight": 30,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "노래 부르기"
+        },
+        {
+          "id": "music_perf_3",
+          "kind": "performance",
+          "weight": 30,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "서양 음악 감상문 작성하기"
+        }
+      ]
+    },
+    {
+      "id": "info",
+      "name": "정보",
+      "items": [
+        {
+          "id": "info_perf_1",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "인공지능 제품 비교 분석"
+        },
+        {
+          "id": "info_perf_2",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "피지컬 컴퓨팅 설계 및 구현"
+        },
+        {
+          "id": "info_perf_3",
+          "kind": "performance",
+          "weight": null,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "인공지능 제품 아이디어"
+        }
+      ]
+    },
+    {
+      "id": "pe",
+      "name": "체육",
+      "items": [
+        {
+          "id": "pe_perf_1",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "농구 바운드패스 하기"
+        },
+        {
+          "id": "pe_perf_2",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "농구 레이업슛하기"
+        },
+        {
+          "id": "pe_perf_3",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "왕복 오래달리기하기"
+        },
+        {
+          "id": "pe_perf_4",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "실기형",
+          "content": "발레의 동작 및 작품발표 하기"
+        },
+        {
+          "id": "pe_perf_5",
+          "kind": "performance",
+          "weight": 20,
+          "maxScore": null,
+          "method": "논술형",
+          "content": "전통 표현 작품 비평하기"
+        }
+      ]
+    }
+  ],
   "users": []
 }
