@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="auth">
+  <input id="username" placeholder="아이디">
+  <input id="password" type="password" placeholder="비번">
+  <button onclick="register()">회원가입</button>
+  <button onclick="login()">로그인</button>
+</div>
+
+<div id="app" style="display:none;">
+  <h3>내신 계산</h3>
+
+  수행: <input id="perform" type="number"><br>
+  지필: <input id="test" type="number"><br>
+  지필 비율(%): <input id="ratio" type="number" value="50"><br>
+
+  <h2 id="result"></h2>
+
+  <button onclick="save()">저장</button>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
