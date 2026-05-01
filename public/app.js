@@ -18,7 +18,9 @@ const currentUserName = document.getElementById("currentUserName");
 const saveStatus = document.getElementById("saveStatus");
 const subjectsRoot = document.getElementById("subjectsRoot");
 const summaryGrid = document.getElementById("summaryGrid");
+const naeshinPanel = document.getElementById("naeshinPanel");
 const THREE_LEVEL_GRADE_SUBJECTS = new Set(["art", "music", "pe"]);
+const GENERAL_GRADE_POINTS = { A: 5, B: 4, C: 3, D: 2, E: 1 };
 
 authForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -118,6 +120,7 @@ function showAuth() {
   currentUserName.textContent = "";
   setSaveStatus("저장됨", "saved");
   summaryGrid.innerHTML = "";
+  naeshinPanel.innerHTML = "";
   subjectsRoot.innerHTML = "";
   nameInput.focus();
 }
@@ -194,9 +197,11 @@ function renderSubjects() {
 
 function calculateAndRender() {
   summaryGrid.innerHTML = "";
+  const subjectResults = [];
 
   for (const subject of state.subjects) {
     const result = calculateSubject(subject);
+    subjectResults.push({ subject, ...result });
     const totalNode = document.querySelector(`[data-total-for="${subject.id}"]`);
     const gradeNode = document.querySelector(`[data-grade-for="${subject.id}"]`);
 
@@ -223,6 +228,8 @@ function calculateAndRender() {
     `;
     summaryGrid.appendChild(summary);
   }
+
+  renderNaeshin(subjectResults);
 }
 
 function calculateSubject(subject) {
@@ -264,7 +271,84 @@ function gradeFor(subject, roundedTotal) {
   if (roundedTotal >= 90) return "A";
   if (roundedTotal >= 80) return "B";
   if (roundedTotal >= 70) return "C";
-  return "D";
+  if (roundedTotal >= 60) return "D";
+  return "E";
+}
+
+function renderNaeshin(subjectResults) {
+  const result = calculateNaeshin(subjectResults);
+  const unknownText = result.unknownSubjectNames.length
+    ? `<p class="naeshin-warning">배점 미정: ${escapeHtml(result.unknownSubjectNames.join(", "))}</p>`
+    : "";
+
+  naeshinPanel.innerHTML = `
+    <div class="naeshin-main">
+      <span>3-1 기준 가내신점수</span>
+      <div>
+        <strong>${formatScore(result.totalScore)}</strong>
+        <em>/ 60</em>
+      </div>
+    </div>
+    <div class="naeshin-breakdown">
+      <article>
+        <span>3-1 산출</span>
+        <strong>${formatScore(result.generalSemesterScore)} / 30</strong>
+      </article>
+      <article>
+        <span>2배 환산</span>
+        <strong>${formatScore(result.totalScore)} / 60</strong>
+      </article>
+      <article>
+        <span>평균 원점수</span>
+        <strong>${formatScore(result.generalRawAverage, 1)}</strong>
+      </article>
+      <article>
+        <span>평균 성취도</span>
+        <strong>${formatScore(result.generalAchievementAverage, 2)}</strong>
+      </article>
+    </div>
+    <div class="naeshin-meta">
+      <span>일반교과만 반영</span>
+      <span>미술·음악·체육 제외</span>
+      <span>미입력 0점 처리</span>
+    </div>
+    ${unknownText}
+  `;
+}
+
+function calculateNaeshin(subjectResults) {
+  const generalSubjects = subjectResults.filter(({ subject }) => !THREE_LEVEL_GRADE_SUBJECTS.has(subject.id));
+  const generalCount = generalSubjects.length;
+
+  const generalRawAverage = generalCount
+    ? generalSubjects.reduce((sum, item) => sum + item.roundedTotal, 0) / generalCount
+    : 0;
+  const generalAchievementAverage = generalCount
+    ? generalSubjects.reduce((sum, item) => sum + (GENERAL_GRADE_POINTS[item.grade] || 0), 0) / generalCount
+    : 0;
+  const generalSemesterScore = generalCount
+    ? round3(10 + generalAchievementAverage * 2 + generalRawAverage * 0.1)
+    : 0;
+  const totalScore = round3(generalSemesterScore * 2);
+  const unknownSubjectNames = generalSubjects
+    .filter((item) => item.hasUnknownWeight)
+    .map((item) => item.subject.name);
+
+  return {
+    totalScore,
+    generalSemesterScore,
+    generalRawAverage,
+    generalAchievementAverage,
+    unknownSubjectNames
+  };
+}
+
+function round3(value) {
+  return Math.round((Number(value) + Number.EPSILON) * 1000) / 1000;
+}
+
+function formatScore(value, digits = 3) {
+  return Number.isFinite(value) ? value.toFixed(digits) : "0.000";
 }
 
 function queueSave() {
