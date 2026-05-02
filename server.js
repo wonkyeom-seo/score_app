@@ -8,6 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 12345;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, "data.json");
+const USERS_FILE = path.join(ROOT, "data", "users.json");
 const USER_DATA_DIR = path.join(ROOT, "data", "users");
 
 const sessions = new Map();
@@ -132,7 +133,7 @@ function atomicWriteJson(filePath, value) {
 function loadData() {
   ensureDirs();
   if (!fs.existsSync(DATA_FILE)) {
-    const initialData = { subjects: DEFAULT_SUBJECTS, users: [] };
+    const initialData = { subjects: DEFAULT_SUBJECTS };
     atomicWriteJson(DATA_FILE, initialData);
     return initialData;
   }
@@ -141,8 +142,9 @@ function loadData() {
   const data = raw ? JSON.parse(raw) : {};
   let changed = false;
 
-  if (!Array.isArray(data.users)) {
-    data.users = [];
+  if (Object.prototype.hasOwnProperty.call(data, "users")) {
+    migrateLegacyUsers(data.users);
+    delete data.users;
     changed = true;
   }
 
@@ -156,7 +158,53 @@ function loadData() {
 }
 
 function saveData(data) {
-  atomicWriteJson(DATA_FILE, data);
+  const safeData = data && typeof data === "object" ? { ...data } : {};
+  delete safeData.users;
+  atomicWriteJson(DATA_FILE, safeData);
+}
+
+function migrateLegacyUsers(legacyUsers) {
+  if (!Array.isArray(legacyUsers) || legacyUsers.length === 0) return;
+
+  const users = mergeUsers(loadUsers(), legacyUsers);
+  saveUsers(users);
+}
+
+function mergeUsers(primaryUsers, secondaryUsers) {
+  const merged = [];
+  const seenIds = new Set();
+  const seenNames = new Set();
+
+  [...primaryUsers, ...secondaryUsers].forEach((user) => {
+    if (!user || typeof user !== "object") return;
+
+    const id = typeof user.id === "string" ? user.id.trim() : "";
+    const name = typeof user.name === "string" ? user.name.trim().toLowerCase() : "";
+    if ((id && seenIds.has(id)) || (name && seenNames.has(name))) return;
+
+    if (id) seenIds.add(id);
+    if (name) seenNames.add(name);
+    merged.push(user);
+  });
+
+  return merged;
+}
+
+function loadUsers() {
+  ensureDirs();
+  if (!fs.existsSync(USERS_FILE)) return [];
+
+  const raw = fs.readFileSync(USERS_FILE, "utf8").trim();
+  if (!raw) return [];
+
+  const parsed = JSON.parse(raw);
+  if (Array.isArray(parsed)) return parsed;
+  if (parsed && Array.isArray(parsed.users)) return parsed.users;
+  return [];
+}
+
+function saveUsers(users) {
+  atomicWriteJson(USERS_FILE, Array.isArray(users) ? users : []);
 }
 
 function userScoresPath(userId) {
@@ -254,11 +302,12 @@ function clearSessionCookie(res) {
 
 function getSessionUser(req) {
   const data = loadData();
+  const users = loadUsers();
   const token = parseCookies(req).score_session;
   const session = token ? sessions.get(token) : null;
   if (!session) return { data, user: null, token: null };
 
-  const user = data.users.find((candidate) => candidate.id === session.userId);
+  const user = users.find((candidate) => candidate.id === session.userId);
   if (!user) {
     sessions.delete(token);
     return { data, user: null, token: null };
@@ -301,7 +350,8 @@ app.post("/api/register", (req, res) => {
   }
 
   const data = loadData();
-  const existing = data.users.find((user) => user.name.toLowerCase() === name.toLowerCase());
+  const users = loadUsers();
+  const existing = users.find((user) => user.name.toLowerCase() === name.toLowerCase());
   if (existing) {
     return res.status(409).json({ success: false, message: "이미 있는 이름입니다." });
   }
@@ -315,8 +365,8 @@ app.post("/api/register", (req, res) => {
     createdAt: new Date().toISOString()
   };
 
-  data.users.push(user);
-  saveData(data);
+  users.push(user);
+  saveUsers(users);
   saveUserScores(user, {});
 
   const token = createSession(user);
@@ -329,7 +379,8 @@ app.post("/api/login", (req, res) => {
   const name = normalizeName(req.body.name || req.body.username);
   const password = normalizePassword(req.body.password);
   const data = loadData();
-  const user = data.users.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase());
+  const users = loadUsers();
+  const user = users.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase());
 
   if (!user || !verifyPassword(password, user)) {
     return res.status(401).json({ success: false, message: "이름 또는 비밀번호가 맞지 않습니다." });
