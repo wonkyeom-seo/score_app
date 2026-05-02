@@ -45,6 +45,7 @@ const logoutButton = document.getElementById("logoutButton");
 const authMessage = document.getElementById("authMessage");
 const currentUserName = document.getElementById("currentUserName");
 const saveStatus = document.getElementById("saveStatus");
+const installAppButton = document.getElementById("installAppButton");
 const subjectsRoot = document.getElementById("subjectsRoot");
 const summaryGrid = document.getElementById("summaryGrid");
 const tabButtons = document.querySelectorAll("[data-tab-target]");
@@ -52,6 +53,7 @@ const tabPanels = document.querySelectorAll(".tab-panel");
 const msForm = document.getElementById("msForm");
 const msResult = document.getElementById("msResult");
 const THREE_LEVEL_GRADE_SUBJECTS = new Set(["art", "music", "pe"]);
+let deferredInstallPrompt = null;
 
 authForm.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -60,6 +62,7 @@ authForm.addEventListener("submit", (event) => {
 
 registerButton.addEventListener("click", register);
 logoutButton.addEventListener("click", logout);
+installAppButton?.addEventListener("click", installApp);
 
 tabButtons.forEach((button) => {
   button.addEventListener("click", () => activateTab(button.dataset.tabTarget));
@@ -91,7 +94,46 @@ document.addEventListener("change", (event) => {
   }
 });
 
+window.addEventListener("beforeinstallprompt", (event) => {
+  if (isStandaloneApp()) return;
+
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  if (installAppButton) installAppButton.hidden = false;
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  if (installAppButton) installAppButton.hidden = true;
+});
+
+registerServiceWorker();
 init();
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator) || !window.isSecureContext) return;
+
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/service-worker.js").catch(() => {});
+  });
+}
+
+async function installApp() {
+  if (!deferredInstallPrompt || !installAppButton) return;
+
+  installAppButton.hidden = true;
+  deferredInstallPrompt.prompt();
+
+  try {
+    await deferredInstallPrompt.userChoice;
+  } finally {
+    deferredInstallPrompt = null;
+  }
+}
+
+function isStandaloneApp() {
+  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+}
 
 async function init() {
   const result = await requestJson("/api/me");
