@@ -81,7 +81,12 @@ document.addEventListener("input", (event) => {
 });
 
 document.addEventListener("change", (event) => {
-  if (event.target.closest("[data-ms-grade]") || event.target.id === MS_THIRD_SEMESTER_TOGGLE_ID) {
+  if (event.target.id === MS_THIRD_SEMESTER_TOGGLE_ID) {
+    handleThirdSemesterToggleChange();
+    return;
+  }
+
+  if (event.target.closest("[data-ms-grade]")) {
     handleMsChange();
   }
 });
@@ -445,6 +450,15 @@ function handleMsChange() {
   queueMsSave();
 }
 
+function handleThirdSemesterToggleChange() {
+  if (!state.user) return;
+
+  const toggle = document.getElementById(MS_THIRD_SEMESTER_TOGGLE_ID);
+  state.msData.useThirdGradeSecondSemester = Boolean(toggle?.checked);
+  renderMsCalculation();
+  queueMsSave();
+}
+
 function collectMsFormData() {
   const grades = {};
 
@@ -519,15 +533,12 @@ function renderMsResult(result) {
 }
 
 function updateMsSemesterSummaries(result) {
-  const effectiveGrades = buildEffectiveGrades(
-    state.msData.grades,
-    state.msData.useThirdGradeSecondSemester
-  );
+  const savedGrades = state.msData.grades || {};
 
   MS_SEMESTERS.forEach((sem) => {
     const countNode = document.querySelector(`[data-ms-sem-count="${sem.key}"]`);
     const scoreNode = document.querySelector(`[data-ms-sem-score="${sem.key}"]`);
-    const inputCount = countSemesterInputs(effectiveGrades[sem.key]);
+    const inputCount = countSemesterInputs(savedGrades[sem.key]);
 
     if (countNode) countNode.textContent = `${inputCount}개 입력`;
     if (scoreNode) scoreNode.textContent = `${formatScore(result.semesterScores[sem.key])}점`;
@@ -546,7 +557,7 @@ function updateThirdSemesterVisibility() {
   if (helper) {
     helper.textContent = enabled
       ? "O면 3학년 1학기와 2학기를 각각 반영합니다."
-      : "X면 3학년 2학기를 숨기고 1학기 성적으로 3학년 전체를 계산합니다.";
+      : "X면 3학년 2학기를 숨기고 1학기 성적으로 계산합니다. 기존 3-2 입력값은 유지됩니다.";
   }
 }
 
