@@ -121,6 +121,12 @@ app.use((req, res, next) => {
   res.set("Cache-Control", "no-store");
   next();
 });
+
+app.get("/manifest.webmanifest", (req, res) => {
+  res.type("application/manifest+json");
+  res.sendFile(path.join(ROOT, "public", "manifest.webmanifest"));
+});
+
 app.use(express.static(path.join(ROOT, "public")));
 
 function ensureDirs() {
