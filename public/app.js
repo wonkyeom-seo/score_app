@@ -14,6 +14,12 @@ const MS_SUBJECTS = [
 ];
 
 const MS_ART_SUBJECTS = ["체육", "미술", "음악"];
+const MS_LOCKED_EXCLUSIONS = {
+  "1_2": new Set(["역사", "중국어", "미술"]),
+  "2_1": new Set(["사회", "음악"]),
+  "2_2": new Set(["사회", "음악"]),
+  "3_1": new Set(["도덕", "중국어"])
+};
 const MS_THIRD_SEMESTER_TOGGLE_ID = "useThirdGradeSecondSemester";
 const MS_THIRD_SEMESTER_KEY = "3_2";
 const MS_SEMESTERS = [
@@ -413,33 +419,34 @@ function buildMsForm() {
     const list = details.querySelector(".semester-subject-list");
     MS_SUBJECTS.forEach((subject, subjectIndex) => {
       const isArtSubject = MS_ART_SUBJECTS.includes(subject);
+      const isLockedSubject = isLockedMsSubject(sem.key, subject);
       const gradeOptions = isArtSubject
         ? ["", "A", "B", "C", "@"]
         : ["", "A", "B", "C", "D", "E", "@"];
       const row = document.createElement("article");
-      row.className = "ms-subject-row";
+      row.className = `ms-subject-row${isLockedSubject ? " is-locked" : ""}`;
       row.innerHTML = `
         <strong>${escapeHtml(subject)}</strong>
         <label>
-          <span>${isArtSubject ? "원점수 미반영" : "원점수"}</span>
+          <span>${isLockedSubject ? "@ 제외" : (isArtSubject ? "원점수 미반영" : "원점수")}</span>
           <input
             id="${msFieldId("raw", sem.key, subjectIndex)}"
-            ${isArtSubject ? "disabled" : "data-ms-raw"}
+            ${isArtSubject || isLockedSubject ? "disabled" : "data-ms-raw"}
             type="number"
             min="0"
             max="100"
             step="0.1"
             inputmode="decimal"
-            placeholder="${isArtSubject ? "미반영" : "0~100"}"
+            placeholder="${isLockedSubject ? "@ 제외" : (isArtSubject ? "미반영" : "0~100")}"
             aria-label="${escapeHtml(sem.label)} ${escapeHtml(subject)} 원점수">
         </label>
         <label>
           <span>성취도</span>
           <select
             id="${msFieldId("grade", sem.key, subjectIndex)}"
-            data-ms-grade
+            ${isLockedSubject ? "disabled" : "data-ms-grade"}
             aria-label="${escapeHtml(sem.label)} ${escapeHtml(subject)} 성취도">
-            ${gradeOptions.map((grade) => {
+            ${(isLockedSubject ? ["@"] : gradeOptions).map((grade) => {
               const label = grade === "" ? (isArtSubject ? "선택" : "자동") : (grade === "@" ? "@ 제외" : grade);
               return `<option value="${grade}">${label}</option>`;
             }).join("")}
@@ -466,9 +473,10 @@ function populateMsForm() {
       const rawInput = document.getElementById(msFieldId("raw", sem.key, subjectIndex));
       const gradeSelect = document.getElementById(msFieldId("grade", sem.key, subjectIndex));
       const isArtSubject = MS_ART_SUBJECTS.includes(subject);
+      const isLockedSubject = isLockedMsSubject(sem.key, subject);
 
-      if (rawInput) rawInput.value = !isArtSubject && typeof row.raw === "number" ? String(row.raw) : "";
-      if (gradeSelect) gradeSelect.value = row.grade || "";
+      if (rawInput) rawInput.value = !isArtSubject && !isLockedSubject && typeof row.raw === "number" ? String(row.raw) : "";
+      if (gradeSelect) gradeSelect.value = isLockedSubject ? "@" : (row.grade || "");
     });
   });
 
@@ -507,6 +515,11 @@ function collectMsFormData() {
   MS_SEMESTERS.forEach((sem) => {
     const semObj = {};
     MS_SUBJECTS.forEach((subject, subjectIndex) => {
+      if (isLockedMsSubject(sem.key, subject)) {
+        semObj[subject] = { raw: null, grade: "@" };
+        return;
+      }
+
       const isArtSubject = MS_ART_SUBJECTS.includes(subject);
       const rawInput = document.getElementById(msFieldId("raw", sem.key, subjectIndex));
       const gradeSelect = document.getElementById(msFieldId("grade", sem.key, subjectIndex));
@@ -789,19 +802,24 @@ function countSemesterInputs(semData = {}) {
 function buildEffectiveGrades(grades = {}, useThirdGradeSecondSemester = false) {
   const effectiveGrades = {};
   MS_SEMESTERS.forEach((sem) => {
-    effectiveGrades[sem.key] = cloneSemesterData(grades[sem.key]);
+    effectiveGrades[sem.key] = cloneSemesterData(grades[sem.key], sem.key);
   });
 
   if (!useThirdGradeSecondSemester) {
-    effectiveGrades[MS_THIRD_SEMESTER_KEY] = cloneSemesterData(grades["3_1"]);
+    effectiveGrades[MS_THIRD_SEMESTER_KEY] = cloneSemesterData(grades["3_1"], "3_1");
   }
 
   return effectiveGrades;
 }
 
-function cloneSemesterData(semData = {}) {
+function cloneSemesterData(semData = {}, semKey = "") {
   const cloned = {};
   MS_SUBJECTS.forEach((subject) => {
+    if (isLockedMsSubject(semKey, subject)) {
+      cloned[subject] = { raw: null, grade: "@" };
+      return;
+    }
+
     const row = semData[subject] || {};
     cloned[subject] = {
       raw: row.raw ?? null,
@@ -814,7 +832,7 @@ function cloneSemesterData(semData = {}) {
 function createDefaultMsData() {
   const grades = {};
   MS_SEMESTERS.forEach((sem) => {
-    grades[sem.key] = cloneSemesterData();
+    grades[sem.key] = cloneSemesterData({}, sem.key);
   });
 
   return {
@@ -839,10 +857,11 @@ function normalizeMsData(data = {}) {
     const semData = source.grades?.[sem.key] || {};
     MS_SUBJECTS.forEach((subject) => {
       const row = semData[subject] || {};
+      const isLockedSubject = isLockedMsSubject(sem.key, subject);
       const excludedByRaw = row.raw === "@";
       defaults.grades[sem.key][subject] = {
-        raw: typeof row.raw === "number" && Number.isFinite(row.raw) ? row.raw : null,
-        grade: excludedByRaw ? "@" : (typeof row.grade === "string" ? row.grade.trim().toUpperCase() : "")
+        raw: !isLockedSubject && typeof row.raw === "number" && Number.isFinite(row.raw) ? row.raw : null,
+        grade: isLockedSubject ? "@" : (excludedByRaw ? "@" : (typeof row.grade === "string" ? row.grade.trim().toUpperCase() : ""))
       };
     });
   });
@@ -863,6 +882,10 @@ function normalizeMsData(data = {}) {
 
 function isExcludedSubject(info = {}) {
   return info.raw === "@" || (info.grade || "").trim() === "@";
+}
+
+function isLockedMsSubject(semKey, subject) {
+  return Boolean(MS_LOCKED_EXCLUSIONS[semKey]?.has(subject));
 }
 
 function rawToNumber(raw) {

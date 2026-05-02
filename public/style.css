@@ -493,6 +493,24 @@ label {
   font-size: 15px;
 }
 
+.ms-subject-row.is-locked {
+  background: #f2f4f2;
+}
+
+.ms-subject-row.is-locked strong,
+.ms-subject-row.is-locked label span {
+  color: #5c665f;
+}
+
+.ms-subject-row.is-locked input,
+.ms-subject-row.is-locked select {
+  border-color: #d5dcd6;
+  background: #eef1ef;
+  color: #4f5a53;
+  font-weight: 800;
+  opacity: 1;
+}
+
 .ms-subject-row label,
 .extra-grid label {
   gap: 5px;

@@ -382,7 +382,7 @@ app.post("/api/register", (req, res) => {
   const token = createSession(user);
   setSessionCookie(res, token);
 
-  res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: {} });
+  res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: {}, msData: {} });
 });
 
 app.post("/api/login", (req, res) => {
@@ -400,7 +400,7 @@ app.post("/api/login", (req, res) => {
   setSessionCookie(res, token);
 
   const saved = loadUserScores(user);
-  res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: saved.scores });
+  res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: saved.scores, msData: saved.msData });
 });
 
 app.post("/api/save", (req, res) => {
