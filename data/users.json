@@ -1,0 +1,9 @@
+[
+  {
+    "id": "6e9c827e-fd98-4617-bf57-7987524a7507",
+    "name": "서원겸",
+    "passwordSalt": "2ff1c42c5e3aa59b017102175fbf74ac",
+    "passwordHash": "b3bc3827e9f0ffec7f8479d988f068042e42b5f31d7a40cca39a56901000c9ef",
+    "createdAt": "2026-05-01T06:12:28.495Z"
+  }
+]
