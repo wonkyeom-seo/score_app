@@ -1,0 +1,1068 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2f6f5e">
+  <meta name="description" content="점수33은 중학교 3학년 1학기 내신과 전체 가내신을 한 화면에서 계산하는 웹앱입니다.">
+  <link rel="canonical" href="https://jumsu33.kro.kr/">
+  <title>점수33 | 내신 점수 계산기</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f5f7f3;
+      --paper: #fffdf8;
+      --panel: #ffffff;
+      --ink: #17211f;
+      --muted: #627069;
+      --line: #d9e1dc;
+      --green: #2f6f5e;
+      --green-dark: #214f43;
+      --blue: #275d93;
+      --amber: #ad5a17;
+      --rose: #b33b50;
+      --shadow: 0 20px 50px rgba(23, 33, 31, 0.14);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(rgba(47, 111, 94, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(39, 93, 147, 0.035) 1px, transparent 1px),
+        var(--page);
+      background-size: 30px 30px;
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 68px;
+      padding: 12px clamp(18px, 4vw, 56px);
+      border-bottom: 1px solid rgba(217, 225, 220, 0.9);
+      background: rgba(245, 247, 243, 0.88);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: max-content;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .brand-mark {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 7px;
+      background: var(--green);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: clamp(12px, 2vw, 28px);
+      color: #3f4b46;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .header-action,
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 44px;
+      border-radius: 7px;
+      padding: 0 18px;
+      border: 1px solid transparent;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .header-action,
+    .button.primary {
+      background: var(--green);
+      color: #ffffff;
+      box-shadow: 0 12px 28px rgba(47, 111, 94, 0.24);
+    }
+
+    .button.secondary {
+      border-color: rgba(255, 255, 255, 0.42);
+      background: rgba(255, 255, 255, 0.12);
+      color: #ffffff;
+      backdrop-filter: blur(8px);
+    }
+
+    .button.light {
+      border-color: var(--line);
+      background: #ffffff;
+      color: var(--ink);
+      box-shadow: 0 10px 22px rgba(23, 33, 31, 0.08);
+    }
+
+    .button:focus-visible,
+    .header-action:focus-visible,
+    .copy-button:focus-visible,
+    .nav-links a:focus-visible {
+      outline: 3px solid rgba(47, 111, 94, 0.25);
+      outline-offset: 3px;
+    }
+
+    .hero {
+      position: relative;
+      isolation: isolate;
+      min-height: 72svh;
+      overflow: hidden;
+      padding: clamp(64px, 10vw, 116px) clamp(18px, 4vw, 56px) clamp(54px, 8vw, 88px);
+      background: #17211f;
+      color: #ffffff;
+    }
+
+    .hero-scene {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      overflow: hidden;
+      background:
+        linear-gradient(115deg, rgba(23, 33, 31, 0.96) 0%, rgba(25, 55, 51, 0.82) 46%, rgba(45, 55, 66, 0.82) 100%),
+        #17211f;
+    }
+
+    .dashboard {
+      position: absolute;
+      right: clamp(-170px, -6vw, -24px);
+      bottom: clamp(-180px, -16vw, -64px);
+      width: min(760px, 78vw);
+      min-width: 520px;
+      transform: rotate(-4deg);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 253, 248, 0.96);
+      box-shadow: 0 36px 80px rgba(0, 0, 0, 0.34);
+      color: var(--ink);
+    }
+
+    .dashboard-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 58px;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--line);
+      background: #eef4f0;
+    }
+
+    .dots {
+      display: flex;
+      gap: 7px;
+    }
+
+    .dots span {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+
+    .dots span:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .dots span:nth-child(3) {
+      background: var(--rose);
+    }
+
+    .dashboard-title {
+      color: #35423d;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .dashboard-body {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 14px;
+      padding: 16px;
+    }
+
+    .score-tile,
+    .mini-panel,
+    .mock-table {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+    }
+
+    .score-tile {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      padding: 18px;
+    }
+
+    .score-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .score-value {
+      color: var(--green-dark);
+      font-size: clamp(42px, 6vw, 68px);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .score-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      border-radius: 999px;
+      padding: 0 10px;
+      background: #f1f6f3;
+      color: #415049;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .mini-panel {
+      display: grid;
+      gap: 10px;
+      padding: 14px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 58px minmax(0, 1fr) 34px;
+      align-items: center;
+      gap: 10px;
+      color: #51605a;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .bar {
+      height: 9px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ee;
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .bar-row:nth-child(2) .bar span {
+      background: var(--blue);
+    }
+
+    .bar-row:nth-child(3) .bar span {
+      background: var(--amber);
+    }
+
+    .mock-table {
+      grid-column: 1 / -1;
+      overflow: hidden;
+    }
+
+    .mock-table div {
+      display: grid;
+      grid-template-columns: 0.8fr 1fr 1fr 0.7fr;
+      min-height: 38px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .mock-table div:last-child {
+      border-bottom: 0;
+    }
+
+    .mock-table span {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      color: #4e5c56;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .mock-table .head span {
+      background: #eef4f0;
+      color: #33413b;
+      font-weight: 900;
+    }
+
+    .hero-inner {
+      width: min(760px, 100%);
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: #9ee0ce;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 680px;
+      margin-bottom: 20px;
+      font-size: clamp(48px, 9vw, 112px);
+      line-height: 0.95;
+      overflow-wrap: anywhere;
+    }
+
+    .lede {
+      max-width: 680px;
+      margin-bottom: 30px;
+      color: rgba(255, 255, 255, 0.86);
+      font-size: clamp(17px, 2.1vw, 23px);
+      line-height: 1.6;
+      word-break: keep-all;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 34px;
+    }
+
+    .hero-metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 150px));
+      gap: 12px;
+      max-width: 520px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .hero-metrics li {
+      min-height: 86px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(12px);
+    }
+
+    .metric-value {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 24px;
+      font-weight: 900;
+    }
+
+    .metric-label {
+      color: rgba(255, 255, 255, 0.74);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.4;
+      word-break: keep-all;
+    }
+
+    .section {
+      padding: clamp(54px, 8vw, 92px) clamp(18px, 4vw, 56px);
+    }
+
+    .section-inner {
+      width: min(1120px, 100%);
+      margin: 0 auto;
+    }
+
+    .section-kicker {
+      margin-bottom: 10px;
+      color: var(--green);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .section h2 {
+      max-width: 760px;
+      margin-bottom: 16px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.15;
+      word-break: keep-all;
+    }
+
+    .section-copy {
+      max-width: 720px;
+      margin-bottom: 34px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.7;
+      word-break: keep-all;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .feature-card {
+      display: grid;
+      gap: 12px;
+      min-height: 220px;
+      padding: 20px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 10px 28px rgba(23, 33, 31, 0.06);
+    }
+
+    .feature-icon {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border-radius: 7px;
+      background: #eef4f0;
+      color: var(--green-dark);
+      font-weight: 900;
+    }
+
+    .feature-card:nth-child(2) .feature-icon {
+      background: #edf3fb;
+      color: var(--blue);
+    }
+
+    .feature-card:nth-child(3) .feature-icon {
+      background: #fff2e7;
+      color: var(--amber);
+    }
+
+    .feature-card:nth-child(4) .feature-icon {
+      background: #fbecef;
+      color: var(--rose);
+    }
+
+    .feature-card h3 {
+      margin-bottom: 0;
+      font-size: 20px;
+      line-height: 1.25;
+      word-break: keep-all;
+    }
+
+    .feature-card p {
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.65;
+      word-break: keep-all;
+    }
+
+    .preview-band {
+      background: #ffffff;
+    }
+
+    .preview-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+      align-items: start;
+      gap: clamp(22px, 5vw, 58px);
+    }
+
+    .check-list {
+      display: grid;
+      gap: 12px;
+      padding: 0;
+      margin: 0;
+      list-style: none;
+    }
+
+    .check-list li {
+      display: grid;
+      grid-template-columns: 30px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      color: #3f4d47;
+      font-size: 16px;
+      line-height: 1.55;
+      word-break: keep-all;
+    }
+
+    .check-list strong {
+      display: grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 7px;
+      background: var(--green);
+      color: #ffffff;
+      font-size: 15px;
+    }
+
+    .workbench {
+      display: grid;
+      gap: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #f8faf7;
+      box-shadow: var(--shadow);
+    }
+
+    .workbench-tabs {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      padding: 5px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #eef4f0;
+    }
+
+    .workbench-tabs span {
+      display: grid;
+      place-items: center;
+      min-height: 42px;
+      border-radius: 6px;
+      background: #ffffff;
+      color: var(--green-dark);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .workbench-tabs span:last-child {
+      background: transparent;
+      color: #5c6963;
+    }
+
+    .subject-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .subject-box {
+      min-height: 112px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+    }
+
+    .subject-box span {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .subject-box strong {
+      display: block;
+      margin-bottom: 14px;
+      font-size: 24px;
+    }
+
+    .subject-box .mini-line {
+      width: 100%;
+      height: 8px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #edf1ee;
+    }
+
+    .subject-box .mini-line i {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: var(--green);
+    }
+
+    .subject-box:nth-child(2) .mini-line i {
+      background: var(--blue);
+    }
+
+    .subject-box:nth-child(3) .mini-line i {
+      background: var(--amber);
+    }
+
+    .info-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .info-row article {
+      min-height: 92px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #ffffff;
+    }
+
+    .info-row span {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .info-row strong {
+      font-size: 19px;
+    }
+
+    .cta {
+      padding: clamp(56px, 8vw, 88px) clamp(18px, 4vw, 56px);
+      background: #17211f;
+      color: #ffffff;
+    }
+
+    .cta-inner {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 22px;
+      width: min(1120px, 100%);
+      margin: 0 auto;
+    }
+
+    .cta h2 {
+      margin-bottom: 10px;
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.15;
+      word-break: keep-all;
+    }
+
+    .cta p {
+      max-width: 680px;
+      margin-bottom: 0;
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 16px;
+      line-height: 1.7;
+      word-break: keep-all;
+    }
+
+    .cta-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .copy-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      border-radius: 7px;
+      padding: 0 18px;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .site-footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 24px clamp(18px, 4vw, 56px);
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    @media (hover: hover) {
+      .header-action:hover,
+      .button.primary:hover {
+        background: var(--green-dark);
+      }
+
+      .button.secondary:hover,
+      .copy-button:hover {
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      .button.light:hover {
+        background: #f7faf8;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .nav-links {
+        display: none;
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .preview-layout,
+      .cta-inner {
+        grid-template-columns: 1fr;
+      }
+
+      .cta-actions {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .site-header {
+        min-height: 62px;
+        padding: 10px 14px;
+      }
+
+      .brand span:last-child {
+        display: none;
+      }
+
+      .header-action {
+        min-height: 40px;
+        padding: 0 14px;
+      }
+
+      .hero {
+        min-height: 78svh;
+        padding: 54px 16px 42px;
+      }
+
+      .dashboard {
+        right: -260px;
+        bottom: -130px;
+        min-width: 520px;
+        opacity: 0.34;
+      }
+
+      .lede {
+        font-size: 17px;
+      }
+
+      .hero-actions,
+      .cta-actions {
+        flex-direction: column;
+      }
+
+      .button,
+      .copy-button {
+        width: 100%;
+      }
+
+      .hero-metrics,
+      .feature-grid,
+      .subject-grid,
+      .info-row {
+        grid-template-columns: 1fr;
+      }
+
+      .hero-metrics li {
+        min-height: 76px;
+      }
+
+      .section {
+        padding: 48px 16px;
+      }
+
+      .feature-card {
+        min-height: 0;
+      }
+
+      .workbench {
+        padding: 10px;
+      }
+
+      .site-footer {
+        flex-direction: column;
+        padding: 22px 16px;
+      }
+    }
+
+    @media (prefers-reduced-motion: no-preference) {
+      .dashboard {
+        animation: floatPreview 8s ease-in-out infinite;
+      }
+
+      @keyframes floatPreview {
+        0%,
+        100% {
+          transform: rotate(-4deg) translateY(0);
+        }
+
+        50% {
+          transform: rotate(-4deg) translateY(-10px);
+        }
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="https://jumsu33.kro.kr/" aria-label="점수33 앱 열기">
+      <span class="brand-mark">33</span>
+      <span>점수33</span>
+    </a>
+    <nav class="nav-links" aria-label="페이지 이동">
+      <a href="#features">기능</a>
+      <a href="#preview">화면</a>
+      <a href="#start">바로가기</a>
+    </nav>
+    <a class="header-action" href="https://jumsu33.kro.kr/">앱 열기</a>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-scene" aria-hidden="true">
+        <div class="dashboard">
+          <div class="dashboard-top">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="dashboard-title">내신 자동 계산</div>
+          </div>
+          <div class="dashboard-body">
+            <div class="score-tile">
+              <span class="score-label">전체 가내신</span>
+              <strong class="score-value" data-count="196.8">196.8</strong>
+              <div class="score-meta">
+                <span class="pill">자동 저장</span>
+                <span class="pill">3-2 선택</span>
+              </div>
+            </div>
+            <div class="mini-panel">
+              <div class="bar-row"><span>국어</span><div class="bar"><span style="width: 91%"></span></div><strong>91</strong></div>
+              <div class="bar-row"><span>수학</span><div class="bar"><span style="width: 87%"></span></div><strong>87</strong></div>
+              <div class="bar-row"><span>영어</span><div class="bar"><span style="width: 94%"></span></div><strong>94</strong></div>
+              <div class="bar-row"><span>과학</span><div class="bar"><span style="width: 89%"></span></div><strong>89</strong></div>
+            </div>
+            <div class="mock-table">
+              <div class="head"><span>과목</span><span>수행</span><span>지필</span><span>등급</span></div>
+              <div><span>사회</span><span>40 / 40</span><span>86 / 100</span><span>A</span></div>
+              <div><span>역사</span><span>28 / 30</span><span>91 / 100</span><span>A</span></div>
+              <div><span>미술</span><span>성취도</span><span>반영</span><span>B</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-inner">
+        <p class="eyebrow">중학교 내신 점수 계산기</p>
+        <h1 id="hero-title">점수33</h1>
+        <p class="lede">3학년 1학기 수행평가와 지필 점수, 전체 가내신 계산까지 한 번에 확인하는 웹앱입니다. 로그인하면 입력값이 저장되어 다시 들어와도 이어서 계산할 수 있습니다.</p>
+        <div class="hero-actions">
+          <a class="button primary" href="https://jumsu33.kro.kr/">계산기 들어가기</a>
+          <a class="button secondary" href="#preview">화면 보기</a>
+        </div>
+        <ul class="hero-metrics" aria-label="주요 정보">
+          <li>
+            <span class="metric-value">3-1</span>
+            <span class="metric-label">수행평가와 지필 점수 계산</span>
+          </li>
+          <li>
+            <span class="metric-value">전체</span>
+            <span class="metric-label">학기별 원점수와 성취도 반영</span>
+          </li>
+          <li>
+            <span class="metric-value">저장</span>
+            <span class="metric-label">로그인 기반 자동 저장</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="section-inner">
+        <p class="section-kicker">기능</p>
+        <h2>점수 입력부터 가내신 확인까지 필요한 흐름만 담았습니다.</h2>
+        <p class="section-copy">과목별 점수, 예체능 성취도, 출결과 봉사 같은 비교과 항목을 나눠 입력하고 결과를 바로 확인할 수 있습니다.</p>
+
+        <div class="feature-grid">
+          <article class="feature-card">
+            <span class="feature-icon">3-1</span>
+            <h3>3학년 1학기 계산</h3>
+            <p>수행평가와 정기고사 점수를 과목별 비율에 맞춰 계산합니다.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">총점</span>
+            <h3>전체 가내신 계산</h3>
+            <p>학기별 원점수와 성취도를 입력해 전체 가내신을 확인합니다.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">저장</span>
+            <h3>로그인 후 자동 저장</h3>
+            <p>입력한 값이 서버에 저장되어 다음 접속 때 그대로 이어집니다.</p>
+          </article>
+          <article class="feature-card">
+            <span class="feature-icon">앱</span>
+            <h3>휴대폰 앱처럼 사용</h3>
+            <p>PWA 설치를 지원해서 홈 화면에서 바로 열어 쓸 수 있습니다.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="preview" class="section preview-band">
+      <div class="section-inner preview-layout">
+        <div>
+          <p class="section-kicker">화면 구성</p>
+          <h2>내신 계산에 필요한 항목을 한 화면 안에서 오갑니다.</h2>
+          <p class="section-copy">3-1 내신 탭과 전체 가내신 탭을 나눠 두어 빠르게 계산하고, 비교과 입력까지 같은 흐름에서 정리할 수 있습니다.</p>
+          <ul class="check-list">
+            <li><strong>1</strong><span>일반교과는 원점수와 성취도를 함께 반영합니다.</span></li>
+            <li><strong>2</strong><span>체육, 미술, 음악 같은 예체능은 성취도 기준으로 계산합니다.</span></li>
+            <li><strong>3</strong><span>출결, 봉사, 학교활동 점수를 별도로 입력할 수 있습니다.</span></li>
+          </ul>
+        </div>
+
+        <div class="workbench" aria-label="점수33 화면 미리보기">
+          <div class="workbench-tabs">
+            <span>3-1 내신</span>
+            <span>전체 가내신</span>
+          </div>
+          <div class="subject-grid">
+            <div class="subject-box">
+              <span>국어</span>
+              <strong>91.5</strong>
+              <div class="mini-line"><i style="width: 91%"></i></div>
+            </div>
+            <div class="subject-box">
+              <span>수학</span>
+              <strong>88.0</strong>
+              <div class="mini-line"><i style="width: 88%"></i></div>
+            </div>
+            <div class="subject-box">
+              <span>영어</span>
+              <strong>94.0</strong>
+              <div class="mini-line"><i style="width: 94%"></i></div>
+            </div>
+          </div>
+          <div class="info-row">
+            <article>
+              <span>출결</span>
+              <strong>감점 없음</strong>
+            </article>
+            <article>
+              <span>봉사</span>
+              <strong>기준 충족</strong>
+            </article>
+            <article>
+              <span>저장 상태</span>
+              <strong>저장됨</strong>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="start" class="cta">
+      <div class="cta-inner">
+        <div>
+          <h2>바로 계산하러 가기</h2>
+          <p>아래 버튼은 실제 서비스 주소인 https://jumsu33.kro.kr/ 로 연결됩니다.</p>
+        </div>
+        <div class="cta-actions">
+          <a class="button primary" href="https://jumsu33.kro.kr/">점수33 열기</a>
+          <button class="copy-button" type="button" data-copy-url="https://jumsu33.kro.kr/">주소 복사</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>점수33 내신 점수 계산기</span>
+    <a href="https://jumsu33.kro.kr/">https://jumsu33.kro.kr/</a>
+  </footer>
+
+  <script>
+    const copyButton = document.querySelector("[data-copy-url]");
+
+    copyButton.addEventListener("click", async () => {
+      const url = copyButton.dataset.copyUrl;
+
+      try {
+        await navigator.clipboard.writeText(url);
+        copyButton.textContent = "복사됨";
+      } catch {
+        copyButton.textContent = url;
+      }
+
+      window.setTimeout(() => {
+        copyButton.textContent = "주소 복사";
+      }, 1800);
+    });
+
+    const score = document.querySelector("[data-count]");
+    const targetValue = Number(score.dataset.count);
+    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!reduceMotion) {
+      let start = null;
+      const duration = 850;
+
+      function step(timestamp) {
+        if (!start) start = timestamp;
+        const progress = Math.min((timestamp - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        score.textContent = (targetValue * eased).toFixed(1);
+
+        if (progress < 1) {
+          requestAnimationFrame(step);
+        } else {
+          score.textContent = targetValue.toFixed(1);
+        }
+      }
+
+      requestAnimationFrame(step);
+    }
+  </script>
+</body>
+</html>

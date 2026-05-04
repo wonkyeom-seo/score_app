@@ -1,6 +1,12 @@
 # 점수께산기
 
-중학교 내신 점수를 편하게 계산하려고 만든 웹앱입니다.  
+중학교 내신 점수를 편하게 계산하려고 만든 웹앱입니다.
+
+## 바로가기
+
+- 서비스 주소: <https://jumsu33.kro.kr/>
+- 정적 랜딩 페이지: `landing/index.html`
+
 3학년 1학기 수행/지필 점수 계산이랑, 전체 가내신 계산을 한 화면에서 할 수 있게 해뒀습니다.
 
 로그인하면 입력한 값이 서버에 저장돼서, 다시 들어와도 전에 적은 점수가 남아 있습니다.  
@@ -61,6 +67,8 @@ score_app/
     style.css
     manifest.webmanifest
     service-worker.js
+  landing/
+    index.html
   data/
     users.json
     users/
@@ -80,3 +88,6 @@ score_app/
 
 가내신 계산식은 프로젝트 안의 `public/app.js`에 들어 있습니다.  
 점수 기준이나 제외 과목이 바뀌면 그 파일의 `MS_SUBJECTS`, `MS_SEMESTERS`, `MS_LOCKED_EXCLUSIONS` 쪽을 보면 됩니다.
+
+랜딩 페이지는 `landing/index.html` 하나에 HTML, CSS, JavaScript를 모두 넣은 정적 페이지입니다.  
+앱으로 들어가는 버튼은 모두 <https://jumsu33.kro.kr/> 로 연결됩니다.
