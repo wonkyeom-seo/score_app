@@ -470,6 +470,67 @@ label {
   font-weight: 800;
 }
 
+.semester-mode-panel {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 10px 0;
+  border-top: 1px solid #e1e7e2;
+  background: #ffffff;
+}
+
+.semester-mode-tabs {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  min-width: 240px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f4f6f4;
+}
+
+.semester-mode-tabs label {
+  position: relative;
+  display: block;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.semester-mode-tabs input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  min-height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.semester-mode-tabs span {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  border-radius: 5px;
+  padding: 0 10px;
+  text-align: center;
+}
+
+.semester-mode-tabs input:checked + span {
+  background: var(--accent);
+  color: white;
+}
+
+.semester-direct-score {
+  width: min(240px, 100%);
+}
+
+.semester-direct-score input {
+  text-align: right;
+}
+
 .semester-subject-list {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
@@ -776,6 +837,18 @@ td input {
   .semester-subject-list {
     grid-template-columns: 1fr;
     padding: 8px;
+  }
+
+  .semester-mode-panel {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 8px 8px 0;
+  }
+
+  .semester-mode-tabs,
+  .semester-direct-score {
+    width: 100%;
+    min-width: 0;
   }
 
   .ms-subject-row {

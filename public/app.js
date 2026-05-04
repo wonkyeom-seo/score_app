@@ -22,6 +22,8 @@ const MS_LOCKED_EXCLUSIONS = {
 };
 const MS_THIRD_SEMESTER_TOGGLE_ID = "useThirdGradeSecondSemester";
 const MS_THIRD_SEMESTER_KEY = "3_2";
+const MS_INPUT_MODE_DETAIL = "detail";
+const MS_INPUT_MODE_DIRECT = "direct";
 const MS_SEMESTERS = [
   { key: "1_2", label: "1학년 2학기", base: 4, achWeight: 0.8, rawWeight: 0.04, maxScore: 12 },
   { key: "2_1", label: "2학년 1학기", base: 8, achWeight: 1.6, rawWeight: 0.08, maxScore: 24 },
@@ -84,7 +86,7 @@ document.addEventListener("input", (event) => {
     return;
   }
 
-  if (event.target.closest("[data-ms-raw], #extraInputs input")) {
+  if (event.target.closest("[data-ms-raw], [data-ms-direct-score], #extraInputs input")) {
     handleMsChange();
   }
 });
@@ -92,6 +94,12 @@ document.addEventListener("input", (event) => {
 document.addEventListener("change", (event) => {
   if (event.target.id === MS_THIRD_SEMESTER_TOGGLE_ID) {
     handleThirdSemesterToggleChange();
+    return;
+  }
+
+  const modeInput = event.target.closest("[data-ms-mode]");
+  if (modeInput) {
+    handleMsSemesterModeChange(modeInput.dataset.semKey);
     return;
   }
 
@@ -413,6 +421,42 @@ function buildMsForm() {
           <span data-ms-sem-score="${sem.key}">${formatScore(sem.base)}점</span>
         </em>
       </summary>
+      <div class="semester-mode-panel" aria-label="${escapeHtml(sem.label)} 일반교과 입력 방식">
+        <div class="semester-mode-tabs">
+          <label>
+            <input
+              type="radio"
+              name="ms_mode_${sem.key}"
+              value="${MS_INPUT_MODE_DETAIL}"
+              data-ms-mode
+              data-sem-key="${sem.key}">
+            <span>과목별 입력</span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="ms_mode_${sem.key}"
+              value="${MS_INPUT_MODE_DIRECT}"
+              data-ms-mode
+              data-sem-key="${sem.key}">
+            <span>계산값 입력</span>
+          </label>
+        </div>
+        <label class="semester-direct-score" data-ms-direct-wrap="${sem.key}" hidden>
+          <span>계산된 일반교과 점수</span>
+          <input
+            id="${msDirectFieldId(sem.key)}"
+            data-ms-direct-score
+            data-sem-key="${sem.key}"
+            type="number"
+            min="0"
+            max="${sem.maxScore}"
+            step="0.001"
+            inputmode="decimal"
+            placeholder="0~${sem.maxScore}"
+            aria-label="${escapeHtml(sem.label)} 계산된 일반교과 점수">
+        </label>
+      </div>
       <div class="semester-subject-list"></div>
     `;
 
@@ -424,7 +468,7 @@ function buildMsForm() {
         ? ["", "A", "B", "C", "@"]
         : ["", "A", "B", "C", "D", "E", "@"];
       const row = document.createElement("article");
-      row.className = `ms-subject-row${isLockedSubject ? " is-locked" : ""}`;
+      row.className = `ms-subject-row${isArtSubject ? " is-art-subject" : ""}${isLockedSubject ? " is-locked" : ""}`;
       row.innerHTML = `
         <strong>${escapeHtml(subject)}</strong>
         <label>
@@ -467,6 +511,16 @@ function populateMsForm() {
   if (toggle) toggle.checked = Boolean(state.msData.useThirdGradeSecondSemester);
 
   MS_SEMESTERS.forEach((sem) => {
+    const mode = getSemesterInputMode(state.msData.semesterInputModes?.[sem.key]);
+    const directInput = document.getElementById(msDirectFieldId(sem.key));
+    const directScore = directScoreToNumber(state.msData.semesterDirectScores?.[sem.key], sem.maxScore);
+
+    document.querySelectorAll(`[data-ms-mode][data-sem-key="${sem.key}"]`).forEach((input) => {
+      input.checked = input.value === mode;
+    });
+
+    if (directInput) directInput.value = directScore === null ? "" : String(directScore);
+
     const semData = state.msData.grades[sem.key] || {};
     MS_SUBJECTS.forEach((subject, subjectIndex) => {
       const row = semData[subject] || {};
@@ -489,6 +543,7 @@ function populateMsForm() {
   setInputValue("volunteerHours", state.msData.volunteerHours);
   setInputValue("awards", state.msData.awards);
   setInputValue("councilMonths", state.msData.councilMonths);
+  updateAllSemesterInputModes();
   updateThirdSemesterVisibility();
 }
 
@@ -509,11 +564,28 @@ function handleThirdSemesterToggleChange() {
   queueMsSave();
 }
 
+function handleMsSemesterModeChange(semKey) {
+  if (!state.user) return;
+
+  updateSemesterInputModeUi(semKey);
+  handleMsChange();
+}
+
 function collectMsFormData() {
   const grades = {};
+  const semesterInputModes = {};
+  const semesterDirectScores = {};
 
   MS_SEMESTERS.forEach((sem) => {
     const semObj = {};
+    const modeInput = document.querySelector(`[data-ms-mode][data-sem-key="${sem.key}"]:checked`);
+    const directInput = document.getElementById(msDirectFieldId(sem.key));
+    const directValue = directInput ? directInput.value.trim() : "";
+    const parsedDirect = directValue === "" ? null : Number(directValue);
+
+    semesterInputModes[sem.key] = getSemesterInputMode(modeInput?.value);
+    semesterDirectScores[sem.key] = Number.isFinite(parsedDirect) ? parsedDirect : null;
+
     MS_SUBJECTS.forEach((subject, subjectIndex) => {
       if (isLockedMsSubject(sem.key, subject)) {
         semObj[subject] = { raw: null, grade: "@" };
@@ -544,6 +616,8 @@ function collectMsFormData() {
 
   return {
     grades,
+    semesterInputModes,
+    semesterDirectScores,
     attendance,
     volunteerHours: parseNumberInput("volunteerHours"),
     awards: parseNumberInput("awards"),
@@ -589,13 +663,23 @@ function renderMsResult(result) {
 
 function updateMsSemesterSummaries(result) {
   const savedGrades = state.msData.grades || {};
+  const modes = state.msData.semesterInputModes || {};
+  const directScores = state.msData.semesterDirectScores || {};
 
   MS_SEMESTERS.forEach((sem) => {
     const countNode = document.querySelector(`[data-ms-sem-count="${sem.key}"]`);
     const scoreNode = document.querySelector(`[data-ms-sem-score="${sem.key}"]`);
-    const inputCount = countSemesterInputs(savedGrades[sem.key]);
+    const mode = getSemesterInputMode(modes[sem.key]);
 
-    if (countNode) countNode.textContent = `${inputCount}개 입력`;
+    if (countNode) {
+      if (mode === MS_INPUT_MODE_DIRECT) {
+        const hasDirectScore = directScoreToNumber(directScores[sem.key], sem.maxScore) !== null;
+        const artCount = countArtInputs(savedGrades[sem.key]);
+        countNode.textContent = `${hasDirectScore ? "직접 입력" : "직접 미입력"}${artCount > 0 ? ` · 예술 ${artCount}개` : ""}`;
+      } else {
+        countNode.textContent = `${countSemesterInputs(savedGrades[sem.key])}개 입력`;
+      }
+    }
     if (scoreNode) scoreNode.textContent = `${formatScore(result.semesterScores[sem.key])}점`;
   });
 }
@@ -619,6 +703,8 @@ function updateThirdSemesterVisibility() {
 function calculateMsTotal(data) {
   const {
     grades,
+    semesterInputModes,
+    semesterDirectScores,
     attendance,
     volunteerHours,
     awards,
@@ -627,16 +713,21 @@ function calculateMsTotal(data) {
   } = normalizeMsData(data);
 
   const effectiveGrades = buildEffectiveGrades(grades, useThirdGradeSecondSemester);
+  const effectiveInputModes = buildEffectiveSemesterInputModes(semesterInputModes, useThirdGradeSecondSemester);
+  const effectiveDirectScores = buildEffectiveSemesterDirectScores(semesterDirectScores, useThirdGradeSecondSemester);
   const semesterScores = {};
   let gradeSum = 0;
 
   MS_SEMESTERS.forEach((sem) => {
-    const score = calculateSemesterScore(
-      effectiveGrades[sem.key],
-      sem.base,
-      sem.achWeight,
-      sem.rawWeight
-    );
+    const directScore = directScoreToNumber(effectiveDirectScores[sem.key], sem.maxScore);
+    const score = effectiveInputModes[sem.key] === MS_INPUT_MODE_DIRECT
+      ? (directScore === null ? sem.base : round3(directScore))
+      : calculateSemesterScore(
+        effectiveGrades[sem.key],
+        sem.base,
+        sem.achWeight,
+        sem.rawWeight
+      );
     semesterScores[sem.key] = score;
     gradeSum += score;
   });
@@ -650,7 +741,7 @@ function calculateMsTotal(data) {
   let minus = 0;
 
   MS_SEMESTERS.forEach((sem) => {
-    if (semesterHasData(effectiveGrades[sem.key])) {
+    if (semesterHasAcademicData(sem, effectiveGrades[sem.key], effectiveInputModes[sem.key], effectiveDirectScores[sem.key])) {
       const diff = sem.maxScore - semesterScores[sem.key];
       if (diff > 0) minus += diff;
     }
@@ -799,6 +890,24 @@ function countSemesterInputs(semData = {}) {
   }).length;
 }
 
+function countArtInputs(semData = {}) {
+  return MS_ART_SUBJECTS.filter((subject) => {
+    const info = semData[subject] || {};
+    if (isExcludedSubject(info)) return false;
+
+    const grade = (info.grade || "").trim().toUpperCase();
+    return grade === "A" || grade === "B" || grade === "C";
+  }).length;
+}
+
+function semesterHasAcademicData(sem, semData = {}, mode = MS_INPUT_MODE_DETAIL, directScore = null) {
+  if (mode === MS_INPUT_MODE_DIRECT) {
+    return directScoreToNumber(directScore, sem.maxScore) !== null;
+  }
+
+  return semesterHasData(semData);
+}
+
 function buildEffectiveGrades(grades = {}, useThirdGradeSecondSemester = false) {
   const effectiveGrades = {};
   MS_SEMESTERS.forEach((sem) => {
@@ -810,6 +919,32 @@ function buildEffectiveGrades(grades = {}, useThirdGradeSecondSemester = false) 
   }
 
   return effectiveGrades;
+}
+
+function buildEffectiveSemesterInputModes(modes = {}, useThirdGradeSecondSemester = false) {
+  const effectiveModes = {};
+  MS_SEMESTERS.forEach((sem) => {
+    effectiveModes[sem.key] = getSemesterInputMode(modes[sem.key]);
+  });
+
+  if (!useThirdGradeSecondSemester) {
+    effectiveModes[MS_THIRD_SEMESTER_KEY] = getSemesterInputMode(modes["3_1"]);
+  }
+
+  return effectiveModes;
+}
+
+function buildEffectiveSemesterDirectScores(scores = {}, useThirdGradeSecondSemester = false) {
+  const effectiveScores = {};
+  MS_SEMESTERS.forEach((sem) => {
+    effectiveScores[sem.key] = scores[sem.key] ?? null;
+  });
+
+  if (!useThirdGradeSecondSemester) {
+    effectiveScores[MS_THIRD_SEMESTER_KEY] = scores["3_1"] ?? null;
+  }
+
+  return effectiveScores;
 }
 
 function cloneSemesterData(semData = {}, semKey = "") {
@@ -831,12 +966,18 @@ function cloneSemesterData(semData = {}, semKey = "") {
 
 function createDefaultMsData() {
   const grades = {};
+  const semesterInputModes = {};
+  const semesterDirectScores = {};
   MS_SEMESTERS.forEach((sem) => {
     grades[sem.key] = cloneSemesterData({}, sem.key);
+    semesterInputModes[sem.key] = MS_INPUT_MODE_DETAIL;
+    semesterDirectScores[sem.key] = null;
   });
 
   return {
     grades,
+    semesterInputModes,
+    semesterDirectScores,
     attendance: {
       1: { tardy: 0, absent: 0 },
       2: { tardy: 0, absent: 0 },
@@ -854,6 +995,10 @@ function normalizeMsData(data = {}) {
   const source = data && typeof data === "object" ? data : {};
 
   MS_SEMESTERS.forEach((sem) => {
+    const directScore = source.semesterDirectScores?.[sem.key];
+    defaults.semesterInputModes[sem.key] = getSemesterInputMode(source.semesterInputModes?.[sem.key]);
+    defaults.semesterDirectScores[sem.key] = typeof directScore === "number" && Number.isFinite(directScore) ? directScore : null;
+
     const semData = source.grades?.[sem.key] || {};
     MS_SUBJECTS.forEach((subject) => {
       const row = semData[subject] || {};
@@ -888,9 +1033,45 @@ function isLockedMsSubject(semKey, subject) {
   return Boolean(MS_LOCKED_EXCLUSIONS[semKey]?.has(subject));
 }
 
+function updateAllSemesterInputModes() {
+  MS_SEMESTERS.forEach((sem) => updateSemesterInputModeUi(sem.key));
+}
+
+function updateSemesterInputModeUi(semKey) {
+  const mode = getSelectedSemesterInputMode(semKey);
+  const isDirectMode = mode === MS_INPUT_MODE_DIRECT;
+  const card = document.getElementById(`semester_${semKey}`);
+  const directWrap = document.querySelector(`[data-ms-direct-wrap="${semKey}"]`);
+  const directInput = document.getElementById(msDirectFieldId(semKey));
+
+  if (card) {
+    card.classList.toggle("is-direct-mode", isDirectMode);
+    card.querySelectorAll(".ms-subject-row").forEach((row) => {
+      row.hidden = isDirectMode && !row.classList.contains("is-art-subject");
+    });
+  }
+
+  if (directWrap) directWrap.hidden = !isDirectMode;
+  if (directInput) directInput.disabled = !isDirectMode;
+}
+
+function getSelectedSemesterInputMode(semKey) {
+  const checked = document.querySelector(`[data-ms-mode][data-sem-key="${semKey}"]:checked`);
+  return getSemesterInputMode(checked?.value ?? state.msData.semesterInputModes?.[semKey]);
+}
+
+function getSemesterInputMode(mode) {
+  return mode === MS_INPUT_MODE_DIRECT ? MS_INPUT_MODE_DIRECT : MS_INPUT_MODE_DETAIL;
+}
+
 function rawToNumber(raw) {
   if (typeof raw !== "number") return null;
   return Number.isFinite(raw) && raw >= 0 && raw <= 100 ? raw : null;
+}
+
+function directScoreToNumber(score, maxScore) {
+  if (typeof score !== "number") return null;
+  return Number.isFinite(score) && score >= 0 && score <= maxScore ? score : null;
 }
 
 function inferGradeFromRaw(raw) {
@@ -991,6 +1172,10 @@ async function requestJson(url, options = {}) {
 
 function msFieldId(kind, semKey, subjectIndex) {
   return `ms_${kind}_${semKey}_${subjectIndex}`;
+}
+
+function msDirectFieldId(semKey) {
+  return `ms_direct_${semKey}`;
 }
 
 function parseNumberInput(id) {
