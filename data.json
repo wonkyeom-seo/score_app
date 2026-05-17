@@ -7,16 +7,16 @@
         {
           "id": "science_perf_1",
           "kind": "performance",
-          "weight": null,
-          "maxScore": 30,
+          "weight": 30,
+          "maxScore": null,
           "method": "논술형",
           "content": "운동과 에너지의 관계 해석하기"
         },
         {
           "id": "science_perf_2",
           "kind": "performance",
-          "weight": null,
-          "maxScore": 10,
+          "weight": 10,
+          "maxScore": null,
           "method": "포트폴리오",
           "content": "포트폴리오"
         },
@@ -227,16 +227,16 @@
         {
           "id": "history_perf_1",
           "kind": "performance",
-          "weight": null,
-          "maxScore": 20,
+          "weight": 20,
+          "maxScore": null,
           "method": "논술형",
           "content": "삼국 통일 의의 논술하기"
         },
         {
           "id": "history_perf_2",
           "kind": "performance",
-          "weight": null,
-          "maxScore": 10,
+          "weight": 20,
+          "maxScore": null,
           "method": "논술형",
           "content": "역사 신문 만들기"
         },
